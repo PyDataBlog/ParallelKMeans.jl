@@ -3,6 +3,8 @@ uuid = "42b8e9d4-006b-409a-8472-7f34b3fb58af"
 authors = ["Andrey Oskin"]
 version = "0.1.0"
 
+[deps]
+
 [compat]
 julia = "1.3"
 
