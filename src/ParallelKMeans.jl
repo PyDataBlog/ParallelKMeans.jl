@@ -3,6 +3,7 @@ module ParallelKMeans
 # Based on discourse discussion
 # https://discourse.julialang.org/t/optimization-tips-for-my-julia-code-can-i-make-it-even-faster-and-or-memory-efficient/34614/20
 
+using StatsBase
 import Base.Threads: @spawn, @threads
 
 export kmeans
@@ -137,30 +138,30 @@ function sum_of_squares(x::Array{Float64,2}, labels::Array{Int64,1}, centre::Arr
     return s
 end
 
-function sum_of_squares(x::Array{Float64,2}, labels::Array{Int64,1}, centre::Array, nth = Base.Threads.nthreads())
-    s = 0.0
-
-    @inbounds for j in axes(x, 2)
-        for i in axes(x, 1)
-            s += (x[i, j] - centre[labels[i], j])^2
-        end
-    end
-
-    return s
-end
-
-
-function inner_sum_of_squares(x::Array{Float64,2}, labels::Array{Int64,1}, centre::Array, r)
-    s = 0.0
-
-    @inbounds for j in axes(x, 2)
-        for i in r
-            s += (x[i, j] - centre[labels[i], j])^2
-        end
-    end
-
-    return s
-end
+# function sum_of_squares(x::Array{Float64,2}, labels::Array{Int64,1}, centre::Array, nth = Base.Threads.nthreads())
+#     s = 0.0
+#
+#     @inbounds for j in axes(x, 2)
+#         for i in axes(x, 1)
+#             s += (x[i, j] - centre[labels[i], j])^2
+#         end
+#     end
+#
+#     return s
+# end
+#
+#
+# function inner_sum_of_squares(x::Array{Float64,2}, labels::Array{Int64,1}, centre::Array, r)
+#     s = 0.0
+#
+#     @inbounds for j in axes(x, 2)
+#         for i in r
+#             s += (x[i, j] - centre[labels[i], j])^2
+#         end
+#     end
+#
+#     return s
+# end
 
 """
     Kmeans(design_matrix, k; k_init="k-means++", max_iters=300, tol=1e-4, verbose=true)
