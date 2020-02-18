@@ -1,19 +1,23 @@
 module ParallelKMeans
-########################################
-# Based on discourse discussion
-# https://discourse.julialang.org/t/optimization-tips-for-my-julia-code-can-i-make-it-even-faster-and-or-memory-efficient/34614/20
+
 
 using StatsBase
 import Base.Threads: @spawn, @threads
 
 export kmeans
 
+"""
+TODO: Document function
+"""
 function divider(n, k)
     d = div(n, k)
     xz = vcat(collect((0:k-1) * d), n)
     return [t[1]:t[2] for t in zip(xz[1:end-1] .+ 1, xz[2:end])]
 end
 
+"""
+TODO: Document function
+"""
 function pl_pairwise!(target, x, y, nth = Threads.nthreads())
     ncol = size(x, 2)
     nrow = size(x, 1)
@@ -30,6 +34,9 @@ function pl_pairwise!(target, x, y, nth = Threads.nthreads())
     target
 end
 
+"""
+TODO: Document function
+"""
 function inner_pairwise!(target, x, y, r)
     ncol = size(x, 2)
     @inbounds for k in axes(y, 1)
@@ -46,6 +53,9 @@ function inner_pairwise!(target, x, y, r)
     target
 end
 
+"""
+TODO: Document function
+"""
 function pairwise!(target, x, y)
     ncol = size(x, 2)
     @inbounds for k in axes(y, 1)
@@ -62,11 +72,18 @@ function pairwise!(target, x, y)
     target
 end
 
+
 """
     smart_init(X, k; init="k-means++")
 
     This function handles the random initialisation of the centroids from the
     design matrix (X) and desired groups (k) that a user supplies.
+
+    `k-means++` algorithm is used by default with the normal random selection
+    of centroids from X used if any other string is attempted.
+
+    A tuple representing the centroids, number of rows, & columns respecitively
+    is returned.
 """
 function smart_init(X::Array{Float64, 2}, k::Int; init::String="k-means++")
     n_row, n_col = size(X)
@@ -121,10 +138,14 @@ function smart_init(X::Array{Float64, 2}, k::Int; init::String="k-means++")
 end
 
 
+
 """
     sum_of_squares(x, labels, centre, k)
 
-    This function computes the total sum of squares
+    This function computes the total sum of squares based on the assigned (labels)
+    design matrix(x), centroids (centre), and the number of desired groups (k).
+
+    A Float type representing the computed metric is returned.
 """
 function sum_of_squares(x::Array{Float64,2}, labels::Array{Int64,1}, centre::Array)
     s = 0.0
@@ -138,42 +159,26 @@ function sum_of_squares(x::Array{Float64,2}, labels::Array{Int64,1}, centre::Arr
     return s
 end
 
-# function sum_of_squares(x::Array{Float64,2}, labels::Array{Int64,1}, centre::Array, nth = Base.Threads.nthreads())
-#     s = 0.0
-#
-#     @inbounds for j in axes(x, 2)
-#         for i in axes(x, 1)
-#             s += (x[i, j] - centre[labels[i], j])^2
-#         end
-#     end
-#
-#     return s
-# end
-#
-#
-# function inner_sum_of_squares(x::Array{Float64,2}, labels::Array{Int64,1}, centre::Array, r)
-#     s = 0.0
-#
-#     @inbounds for j in axes(x, 2)
-#         for i in r
-#             s += (x[i, j] - centre[labels[i], j])^2
-#         end
-#     end
-#
-#     return s
-# end
 
 """
     Kmeans(design_matrix, k; k_init="k-means++", max_iters=300, tol=1e-4, verbose=true)
 
-This main function employs the K-means algorithm to cluster all examples
-in the training data (design_matrix) into k groups using either the
-`k-means++` or random initialisation.
+    This main function employs the K-means algorithm to cluster all examples
+    in the training data (design_matrix) into k groups using either the
+    `k-means++` or random initialisation technique for selecting the initial
+    centroids.
 
-design_matrix should have the form (number of points x point dimensionality).
+    At the end of the number of iterations specified (max_iters), convergence is
+    achieved if difference between the current and last cost objective is
+    less than the tolerance level (tol). An error is thrown if convergence fails.
+
+    Details of operations can be either printed or not by setting verbose accordingly.
+
+    A tuple representing labels, centroids, and sum_squares respectively is returned.
+
 """
 function kmeans(design_matrix::Array{Float64, 2}, k::Int; k_init::String = "k-means++",
-    max_iters::Int = 300, tol = 1e-4, verbose::Bool = true)
+    max_iters::Int = 300, tol::Float64 = 1e-4, verbose::Bool = true)
 
     centroids, n_row, n_col = smart_init(design_matrix, k, init=k_init)
 

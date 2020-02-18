@@ -8,3 +8,4 @@
 /docs/site/
 /benchmark/tune.json
 .benchmarkci/
+.idea/*
