@@ -7,7 +7,7 @@ import Base.Threads: @spawn, @threads
 export kmeans
 
 """
-TODO: Document function
+TODO 1: Document function
 """
 function divider(n, k)
     d = div(n, k)
@@ -15,8 +15,9 @@ function divider(n, k)
     return [t[1]:t[2] for t in zip(xz[1:end-1] .+ 1, xz[2:end])]
 end
 
+
 """
-TODO: Document function
+TODO 2: Document function
 """
 function pl_pairwise!(target, x, y, nth = Threads.nthreads())
     ncol = size(x, 2)
@@ -34,8 +35,9 @@ function pl_pairwise!(target, x, y, nth = Threads.nthreads())
     target
 end
 
+
 """
-TODO: Document function
+TODO 3: Document function
 """
 function inner_pairwise!(target, x, y, r)
     ncol = size(x, 2)
@@ -53,8 +55,9 @@ function inner_pairwise!(target, x, y, r)
     target
 end
 
+
 """
-TODO: Document function
+TODO 4: Document function
 """
 function pairwise!(target, x, y)
     ncol = size(x, 2)
@@ -138,7 +141,6 @@ function smart_init(X::Array{Float64, 2}, k::Int; init::String="k-means++")
 end
 
 
-
 """
     sum_of_squares(x, labels, centre, k)
 
@@ -178,7 +180,7 @@ end
 
 """
 function kmeans(design_matrix::Array{Float64, 2}, k::Int; k_init::String = "k-means++",
-    max_iters::Int = 300, tol::Float64 = 1e-4, verbose::Bool = true)
+    max_iters::Int = 300, tol = 1e-4, verbose::Bool = true)
 
     centroids, n_row, n_col = smart_init(design_matrix, k, init=k_init)
 
