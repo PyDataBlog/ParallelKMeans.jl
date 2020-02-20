@@ -22,12 +22,16 @@ TODO 2: Document function
 function pl_pairwise!(target, x, y, nth = Threads.nthreads())
     ncol = size(x, 2)
     nrow = size(x, 1)
+
     ranges = divider(nrow, nth)
     waiting_list = Task[]
+
     for i in 1:length(ranges) - 1
         push!(waiting_list, @spawn inner_pairwise!(target, x, y, ranges[i]))
     end
+
     inner_pairwise!(target, x, y, ranges[end])
+
     for i in 1:length(ranges) - 1
         wait(waiting_list[i])
     end
@@ -41,6 +45,7 @@ TODO 3: Document function
 """
 function inner_pairwise!(target, x, y, r)
     ncol = size(x, 2)
+
     @inbounds for k in axes(y, 1)
         for i in r
             target[i, k] = (x[i, 1] - y[k, 1])^2
@@ -61,6 +66,7 @@ TODO 4: Document function
 """
 function pairwise!(target, x, y)
     ncol = size(x, 2)
+
     @inbounds for k in axes(y, 1)
         for i in axes(x, 1)
             target[i, k] = (x[i, 1] - y[k, 1])^2
