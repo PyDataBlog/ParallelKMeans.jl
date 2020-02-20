@@ -6,12 +6,12 @@ makedocs(;
     pages=[
         "Home" => "index.md",
     ],
-    repo="https://github.com/Arkoniak/ParallelKMeans.jl/blob/{commit}{path}#L{line}",
+    repo="https://github.com/PyDataBlog/ParallelKMeans.jl/blob/{commit}{path}#L{line}",
     sitename="ParallelKMeans.jl",
-    authors="Andrey Oskin",
+    authors="Bernard Brenyah & Andrey Oskin",
     assets=String[],
 )
 
 deploydocs(;
-    repo="github.com/Arkoniak/ParallelKMeans.jl",
+    repo="github.com/PyDataBlog/ParallelKMeans.jl",
 )

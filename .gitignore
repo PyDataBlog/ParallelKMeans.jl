@@ -8,3 +8,5 @@
 /docs/site/
 /benchmark/tune.json
 .benchmarkci/
+.idea/*
+.vscode/*
