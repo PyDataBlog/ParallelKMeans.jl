@@ -16,7 +16,7 @@ struct MultiThread <: CalculationMode
     n::Int
 end
 
-# Get the number of avaialble threads for
+# Get the number of avaialble threads for multithreading implementation
 MultiThread() = MultiThread(Threads.nthreads())
 
 """
