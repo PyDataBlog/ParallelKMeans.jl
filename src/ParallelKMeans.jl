@@ -7,11 +7,16 @@ export kmeans
 
 abstract type CalculationMode end
 
-struct SingleThread <: CalculationMode end
+# Single thread class to control the calculation type based on the CalculationMode
+struct SingleThread <: CalculationMode
+end
 
+# Multi threaded implementation to control the calculation type based avaialble threads
 struct MultiThread <: CalculationMode
     n::Int
 end
+
+# Get the number of avaialble threads for
 MultiThread() = MultiThread(Threads.nthreads())
 
 """
