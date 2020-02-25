@@ -127,7 +127,9 @@ function smart_init(X::Array{Float64, 2}, k::Int, mode::T = SingleThread();
 
         # randonmly select the first centroid from the data (X)
         centroids = zeros(k, n_col)
+        rand_indices = Vector{Int}(undef, k)
         rand_idx = rand(1:n_row)
+        rand_indices[1] = rand_idx
         centroids[1, :] .= X[rand_idx, :]
         distances = Array{Float64}(undef, n_row, 1)
         new_distances = Array{Float64}(undef, n_row, 1)
@@ -143,6 +145,7 @@ function smart_init(X::Array{Float64, 2}, k::Int, mode::T = SingleThread();
             # choose the next centroid, the probability for each data point to be chosen
             # is directly proportional to its squared distance from the nearest centroid
             r_idx = sample(1:n_row, ProbabilityWeights(vec(distances)))
+            rand_indices[i] = r_idx
             centroids[i, :] .= X[r_idx, :]
 
             # Ignore setting the last centroid to help the separation of centroids
@@ -168,7 +171,7 @@ function smart_init(X::Array{Float64, 2}, k::Int, mode::T = SingleThread();
         centroids = X[rand_indices, :]
     end
 
-    return centroids, n_row, n_col
+    return (centroids = centroids, indices = rand_indices)
 end
 
 
@@ -210,10 +213,10 @@ Details of operations can be either printed or not by setting verbose accordingl
 A tuple representing labels, centroids, and sum_squares respectively is returned.
 """
 function kmeans(design_matrix::Array{Float64, 2}, k::Int, mode::T = SingleThread();
-        k_init::String = "k-means++", max_iters::Int = 300, tol = 1e-4,
-        verbose::Bool = true) where {T <: CalculationMode}
+                k_init::String = "k-means++", max_iters::Int = 300, tol = 1e-4, verbose::Bool = true, init = nothing) where {T <: CalculationMode}
 
-    centroids, n_row, n_col = smart_init(design_matrix, k, mode, init=k_init)
+    n_row, n_col = size(design_matrix)
+    centroids = init == nothing ? smart_init(design_matrix, k, mode, init=k_init).centroids : init
 
     labels = Vector{Int}(undef, n_row)
     distances = Vector{Float64}(undef, n_row)
