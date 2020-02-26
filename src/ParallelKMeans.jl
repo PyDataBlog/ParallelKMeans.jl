@@ -131,27 +131,27 @@ function smart_init(X::Array{Float64, 2}, k::Int, mode::T = SingleThread();
         rand_idx = rand(1:n_row)
         rand_indices[1] = rand_idx
         centroids[1, :] .= X[rand_idx, :]
+        centroids[k, :] .= 0.0
         distances = Array{Float64}(undef, n_row, 1)
         new_distances = Array{Float64}(undef, n_row, 1)
 
+        # TODO: Add `colwise` function (or use it from `Distances` package)
         # compute distances from the first centroid chosen to all the other data points
         first_centroid_matrix = convert(Matrix, centroids[1, :]')
 
         # flatten distances
-        # distances = vec(pairwise(SqEuclidean(), X, first_centroid_matrix, dims = 1))
         pairwise!(distances, X, first_centroid_matrix, mode)
+        distances[rand_idx] = 0.0
 
         for i = 2:k
             # choose the next centroid, the probability for each data point to be chosen
             # is directly proportional to its squared distance from the nearest centroid
-            r_idx = sample(1:n_row, ProbabilityWeights(vec(distances)))
+            r_idx = wsample(1:n_row, vec(distances))
             rand_indices[i] = r_idx
             centroids[i, :] .= X[r_idx, :]
 
-            # Ignore setting the last centroid to help the separation of centroids
-            if i == (k-1)
-                break
-            end
+            # no need for final distance update
+            i == k && break
 
             # compute distances from the centroids to all data points
             current_centroid_matrix = convert(Matrix, centroids[i, :]')
@@ -159,10 +159,10 @@ function smart_init(X::Array{Float64, 2}, k::Int, mode::T = SingleThread();
             pairwise!(new_distances, X, first_centroid_matrix, mode)
 
             # and update the squared distance as the minimum distance to all centroid
-            # distances = minimum([distances, new_distances])
             for i in 1:n_row
                 distances[i, 1] = distances[i, 1] < new_distances[i, 1] ? distances[i, 1] : new_distances[i, 1]
             end
+            distances[r_idx, 1] = 0.0
         end
 
     else
