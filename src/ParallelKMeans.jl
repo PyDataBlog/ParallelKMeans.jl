@@ -207,6 +207,25 @@ function sum_of_squares(x::Array{Float64,2}, labels::Array{Int64,1}, centre::Arr
     return s
 end
 
+# TODO generalize centroids type
+function create_containers(k, d, mode::SingleThread)
+    new_centroids = Array{Float64, 2}(undef, d, k)
+    centroids_cnt = Vector{Int}(undef, k)
+
+    return new_centroids, centroids_cnt
+end
+
+function create_containers(k, d, mode::MultiThread)
+    new_centroids = Vector{Array{Float64, 2}}(undef, mode.n)
+    centroids_cnt = Vector{Vector{Int}}(undef, mode.n)
+
+    for i in 1:mode.n
+        new_centroids[i] = Array{Float64, 2}(undef, d, k)
+        centroids_cnt[i] = Vector{Int}(undef, k)
+    end
+
+    return new_centroids, centroids_cnt
+end
 
 """
     Kmeans(design_matrix, k; k_init="k-means++", max_iters=300, tol=1e-4, verbose=true)
@@ -228,15 +247,15 @@ function kmeans(design_matrix::Array{Float64, 2}, k::Int, mode::T = SingleThread
                 k_init::String = "k-means++", max_iters::Int = 300, tol = 1e-4, verbose::Bool = true, init = nothing) where {T <: CalculationMode}
     nrow, ncol = size(design_matrix)
     centroids = init == nothing ? smart_init(design_matrix, k, mode, init=k_init).centroids : init
-    new_centroids = similar(centroids)
+    new_centroids, centroids_cnt = create_containers(k, nrow, mode)
+    # new_centroids = similar(centroids)
 
     labels = Vector{Int}(undef, ncol)
-    centroids_cnt = Vector{Int}(undef, k)
+    # centroids_cnt = Vector{Int}(undef, k)
 
     J_previous = Inf64
     totalcost = Inf
 
-    # nearest_neighbour = Array{Float64, 2}(undef, size(design_matrix, 1), size(centroids, 1))
     # Update centroids & labels with closest members until convergence
     for iter = 1:max_iters
         J = update_centroids!(centroids, new_centroids, centroids_cnt, labels, design_matrix, mode)
@@ -294,16 +313,21 @@ function update_centroids!(centroids, new_centroids, centroids_cnt, labels,
     waiting_list = Vector{Task}(undef, mode.n - 1)
 
     for i in 1:length(ranges) - 1
-        waiting_list[i] = @spawn chunk_update_centroids!(centroids, new_centroids, centroids_cnt, labels,
+        waiting_list[i] = @spawn chunk_update_centroids!(centroids, new_centroids[i + 1], centroids_cnt[i + 1], labels,
             design_matrix, ranges[i], mode)
     end
 
-    J = chunk_update_centroids!(centroids, new_centroids, centroids_cnt, labels,
+    J = chunk_update_centroids!(centroids, new_centroids[1], centroids_cnt[1], labels,
         design_matrix, ranges[end], mode)
 
     J += sum(fetch.(waiting_list))
 
-    centroids .= new_centroids ./ centroids_cnt'
+    for i in 1:length(ranges) - 1
+        new_centroids[1] .+= new_centroids[i + 1]
+        centroids_cnt[1] .+= centroids_cnt[i + 1]
+    end
+
+    centroids .= new_centroids[1] ./ centroids_cnt[1]'
 
     return J
 end

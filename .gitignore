@@ -10,4 +10,4 @@
 .benchmarkci/
 .idea/*
 .vscode/*
-.test/experiments.jl
+test/experiments.jl
