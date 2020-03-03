@@ -254,7 +254,8 @@ function kmeans(design_matrix::Array{Float64, 2}, k::Int, mode::T = SingleThread
     # centroids_cnt = Vector{Int}(undef, k)
 
     J_previous = Inf64
-    totalcost = Inf
+    converged = false
+    niters = 0
 
     # Update centroids & labels with closest members until convergence
     for iter = 1:max_iters
@@ -268,25 +269,25 @@ function kmeans(design_matrix::Array{Float64, 2}, k::Int, mode::T = SingleThread
 
         # Final Step: Check for convergence
         if (iter > 1) & (abs(J - J_previous) < (tol * J))
-
-            totalcost = sum_of_squares(design_matrix, labels, centroids)
-
-            # Terminate algorithm with the assumption that K-means has converged
-            if verbose
-                println("Successfully terminated with convergence.")
-            end
-
-            # TODO empty vectors should be calculated
-            # TODO Float64 type definitions is too restrictive, should be relaxed
-            # especially during GPU related development
-            return KmeansResult(centroids, labels, Float64[], Int[], Float64[], totalcost, iter, true)
-
-        elseif (iter == max_iters) & (abs(J - J_previous) > (tol * J))
-            return KmeansResult(centroids, labels, Float64[], Int[], Float64[], totalcost, iter + 1, false)
+            converged = true
+            niters = iter
+            break
         end
 
         J_previous = J
     end
+
+    totalcost = sum_of_squares(design_matrix, labels, centroids)
+
+    # Terminate algorithm with the assumption that K-means has converged
+    if verbose & converged
+        println("Successfully terminated with convergence.")
+    end
+
+    # TODO empty placeholder vectors should be calculated
+    # TODO Float64 type definitions is too restrictive, should be relaxed
+    # especially during GPU related development
+    return KmeansResult(centroids, labels, Float64[], Int[], Float64[], totalcost, niters, converged)
 end
 
 function update_centroids!(centroids, new_centroids, centroids_cnt, labels,
@@ -303,7 +304,7 @@ end
 
 function update_centroids!(centroids, new_centroids, centroids_cnt, labels,
         design_matrix, mode::MultiThread)
-    mode.n == 1 && return update_centroids!(centroids, new_centroids, centroids_cnt, labels,
+    mode.n == 1 && return update_centroids!(centroids, new_centroids[1], centroids_cnt[1], labels,
             design_matrix, SingleThread())
 
     ncol = size(design_matrix, 2)

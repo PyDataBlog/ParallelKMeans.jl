@@ -19,7 +19,7 @@ suite["100kx10"] = @benchmarkable ParallelKMeans.colwise!($d, $X, $centroids)
 
 # for reference
 metric = SqEuclidean()
-suite["100kx10_distances"] = @benchmarkable Distances.colwise!($d, $metric, $X, $centroids, dims = 2)
+suite["100kx10_distances"] = @benchmarkable Distances.colwise!($d, $metric, $X, $centroids)
 
 end # module
 
