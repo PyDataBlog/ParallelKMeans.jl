@@ -19,8 +19,10 @@ suite["100kx10"] = @benchmarkable ParallelKMeans.colwise!($d, $X, $centroids)
 
 # for reference
 metric = SqEuclidean()
-suite["100kx10_distances"] = @benchmarkable Distances.colwise!($d, $metric, $X, $centroids)
-
+#suite["100kx10_distances"] = @benchmarkable Distances.colwise!($d, $metric, $X, $centroids)
+dist = Distances.pairwise(metric, X, centroids, dims = 2)
+min = minimum(dist, dims=2)
+suite["100kx10_distances"] = @benchmarkable $d = min
 end # module
 
 BenchDistance.suite
