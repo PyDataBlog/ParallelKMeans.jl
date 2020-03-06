@@ -14,12 +14,13 @@ ________________________________________________________________________________
 1. [Motivation](#Motivatiion)
 2. [Installation](#Installation)
 3. [Features](#Features)
-4. [Pending Features](#Pending-Features)
-5. [How To Use](#How-To-Use)
-6. [Release History](#Release-History)
-7. [How To Contribute](#How-To-Contribute)
-8. [Credits](#Credits)
-9. [License](#License)
+4. [Benchmarks](#Benchmarks)
+5. [Pending Features](#Pending-Features)
+6. [How To Use](#How-To-Use)
+7. [Release History](#Release-History)
+8. [How To Contribute](#How-To-Contribute)
+9. [Credits](#Credits)
+10. [License](#License)
 
 _________________________________________________________________________________________________________
 
@@ -29,30 +30,45 @@ ________________________________________________________________________________
 
 ### Installation
 
+```bash
+
+```
+
 _________________________________________________________________________________________________________
 
 ### Features
 
-- Feature 1
-- Feature 2
-- Feature 3
+- Lightening fast implementation of Kmeans clustering algorithm even on a single thread in native Julia.
+- Support for multi-theading implementation of Kmeans clustering algorithm.
+- Kmeans++ initialization for faster and better convergence.
 - Feature 4
+
+_________________________________________________________________________________________________________
+
+### Benchmarks
 
 _________________________________________________________________________________________________________
 
 ### Pending Features
 
-- [ ] Upcoming Feature 1
-- [ ] Upcoming Feature 2
-- [ ] Upcoming Feature 3
+- [ ] Support for DataFrame inputs.
+- [ ] GPU support.
+- [ ] Even faster Kmeans implementation based on current literature.
+- [ ] Optimization of code base.
 
 _________________________________________________________________________________________________________
 
 ### How To Use
 
+```Julia
+
+```
+
 _________________________________________________________________________________________________________
 
 ### Release History
+
+- 0.1.0 Initial release
 
 _________________________________________________________________________________________________________
 
