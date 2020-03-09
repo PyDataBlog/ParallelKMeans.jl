@@ -170,10 +170,10 @@ function smart_init(X::Array{Float64, 2}, k::Int, mode::T = SingleThread();
             colwise!(new_distances, X, centroids[:, i], mode)
 
             # and update the squared distance as the minimum distance to all centroid
-            for i in 1:n_row
-                distances[i, 1] = distances[i, 1] < new_distances[i, 1] ? distances[i, 1] : new_distances[i, 1]
+            for i in 1:n_col
+                distances[i] = distances[i] < new_distances[i] ? distances[i] : new_distances[i]
             end
-            distances[r_idx, 1] = 0.0
+            distances[r_idx] = 0.0
         end
 
     else
