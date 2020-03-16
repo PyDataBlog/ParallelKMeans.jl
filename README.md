@@ -82,4 +82,6 @@ ________________________________________________________________________________
 
 ### License
 
+Implementation of Triangle inequality based on [Elkan C. (2003) "Using the Triangle Inequality to Accelerate
+-Mean"](https://www.aaai.org/Papers/ICML/2003/ICML03-022.pdf)
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FPyDataBlog%2FParallelKMeans.jl.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2FPyDataBlog%2FParallelKMeans.jl?ref=badge_large)

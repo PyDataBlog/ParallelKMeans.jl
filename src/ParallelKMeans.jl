@@ -5,7 +5,12 @@ import Base.Threads: @spawn, @threads
 
 export kmeans
 
+
+abstract type AbstractKMeansAlg end
 abstract type CalculationMode end
+
+struct Lloyd <: AbstractKMeansAlg end
+struct LightElkan <: AbstractKMeansAlg end
 
 # Single thread class to control the calculation type based on the CalculationMode
 struct SingleThread <: CalculationMode
@@ -290,12 +295,69 @@ function kmeans(design_matrix::Array{Float64, 2}, k::Int, mode::T = SingleThread
     return KmeansResult(centroids, labels, Float64[], Int[], Float64[], totalcost, niters, converged)
 end
 
+kmeans(alg::Lloyd, design_matrix::Array{Float64, 2}, k::Int, mode::T = SingleThread();
+    k_init::String = "k-means++", max_iters::Int = 300, tol = 1e-4,
+    verbose::Bool = true, init = nothing) where {T <: CalculationMode} =
+        kmeans(design_matrix, k, mode; k_init = k_init, max_iters = max_iters, tol = tol,
+            verbose = verbose, init = init)
+
+function kmeans(alg::LightElkan, design_matrix::Array{Float64, 2}, k::Int, mode::T = SingleThread();
+                k_init::String = "k-means++", max_iters::Int = 300, tol = 1e-4, verbose::Bool = true, init = nothing) where {T <: CalculationMode}
+    nrow, ncol = size(design_matrix)
+    centroids = init == nothing ? smart_init(design_matrix, k, mode, init=k_init).centroids : deepcopy(init)
+    new_centroids, centroids_cnt = create_containers(k, nrow, mode)
+    # new_centroids = similar(centroids)
+
+    # labels = Vector{Int}(undef, ncol)
+    labels = zeros(Int, ncol)
+    # centroids_cnt = Vector{Int}(undef, k)
+
+    centroids_dist = Matrix{Float64}(undef, k, k)
+
+    J_previous = Inf64
+    converged = false
+    niters = 1
+
+
+    # Update centroids & labels with closest members until convergence
+    for iter = 1:max_iters
+        J = update_centroids!(alg, centroids, centroids_dist, new_centroids, centroids_cnt, labels, design_matrix, mode)
+        J /= ncol
+
+        if verbose
+            # Show progress and terminate if J stopped decreasing.
+            println("Iteration $iter: Jclust = $J")
+        end
+
+        # Final Step: Check for convergence
+        if (iter > 1) & (abs(J - J_previous) < (tol * J))
+            converged = true
+            niters = iter
+            break
+        end
+
+        J_previous = J
+    end
+
+    totalcost = sum_of_squares(design_matrix, labels, centroids)
+
+    # Terminate algorithm with the assumption that K-means has converged
+    if verbose & converged
+        println("Successfully terminated with convergence.")
+    end
+
+    # TODO empty placeholder vectors should be calculated
+    # TODO Float64 type definitions is too restrictive, should be relaxed
+    # especially during GPU related development
+    return KmeansResult(centroids, labels, Float64[], Int[], Float64[], totalcost, niters, converged)
+end
+
 function update_centroids!(centroids, new_centroids, centroids_cnt, labels,
         design_matrix, mode::SingleThread)
 
     r = axes(design_matrix, 2)
     J = chunk_update_centroids!(centroids, new_centroids, centroids_cnt, labels,
-        design_matrix, r, mode)
+        design_matrix, r)
 
     centroids .= new_centroids ./ centroids_cnt'
 
@@ -315,11 +377,11 @@ function update_centroids!(centroids, new_centroids, centroids_cnt, labels,
 
     for i in 1:length(ranges) - 1
         waiting_list[i] = @spawn chunk_update_centroids!(centroids, new_centroids[i + 1], centroids_cnt[i + 1], labels,
-            design_matrix, ranges[i], mode)
+            design_matrix, ranges[i])
     end
 
     J = chunk_update_centroids!(centroids, new_centroids[1], centroids_cnt[1], labels,
-        design_matrix, ranges[end], mode)
+        design_matrix, ranges[end])
 
     J += sum(fetch.(waiting_list))
 
@@ -333,9 +395,80 @@ function update_centroids!(centroids, new_centroids, centroids_cnt, labels,
     return J
 end
 
+# Lots of copy paste. It should be cleaned after api settles down.
+function update_centroids_dist!(centroids_dist, centroids, mode = SingleThread())
+    k = size(centroids_dist, 1) # number of clusters
+    @inbounds for j in axes(centroids_dist, 2)
+        min_dist = Inf
+        for i in j + 1:k
+            d = 0.0
+            for m in axes(centroids, 1)
+                d += (centroids[m, i] - centroids[m, j])^2
+            end
+            centroids_dist[i, j] = d
+            centroids_dist[j, i] = d
+            min_dist = min_dist < d ? min_dist : d
+        end
+        for i in 1:j - 1
+            min_dist = min_dist < centroids_dist[j, i] ? min_dist : centroids_dist[j, i]
+        end
+        centroids_dist[j, j] = min_dist
+    end
+
+    # oh, one should be careful here. inequality holds for eucledian metrics
+    # not square eucledian. So, for Lp norm it should be something like
+    # centroids_dist = 0.5^p. Should check one more time original paper
+    centroids_dist .*= 0.25
+    centroids_dist
+end
+
+function update_centroids!(alg::LightElkan, centroids, centroids_dist, new_centroids, centroids_cnt, labels,
+        design_matrix, mode::SingleThread)
+
+    update_centroids_dist!(centroids_dist, centroids, mode)
+    r = axes(design_matrix, 2)
+    J = chunk_update_centroids!(alg, centroids, centroids_dist, new_centroids, centroids_cnt, labels,
+        design_matrix, r)
+
+    centroids .= new_centroids ./ centroids_cnt'
+
+    return J
+end
+
+function update_centroids!(alg::LightElkan, centroids, centroids_dist, new_centroids, centroids_cnt, labels,
+        design_matrix, mode::MultiThread)
+    mode.n == 1 && return update_centroids!(alg, centroids, centroids_dist, new_centroids[1], centroids_cnt[1], labels,
+            design_matrix, SingleThread())
+
+    update_centroids_dist!(centroids_dist, centroids, mode)
+    ncol = size(design_matrix, 2)
+
+    ranges = splitter(ncol, mode.n)
+
+    waiting_list = Vector{Task}(undef, mode.n - 1)
+
+    for i in 1:length(ranges) - 1
+        waiting_list[i] = @spawn chunk_update_centroids!(alg, centroids, centroids_dist, new_centroids[i + 1], centroids_cnt[i + 1], labels,
+            design_matrix, ranges[i])
+    end
+
+    J = chunk_update_centroids!(alg, centroids, centroids_dist, new_centroids[1], centroids_cnt[1], labels,
+        design_matrix, ranges[end])
+
+    J += sum(fetch.(waiting_list))
+
+    for i in 1:length(ranges) - 1
+        new_centroids[1] .+= new_centroids[i + 1]
+        centroids_cnt[1] .+= centroids_cnt[i + 1]
+    end
+
+    centroids .= new_centroids[1] ./ centroids_cnt[1]'
+
+    return J
+end
 
 function chunk_update_centroids!(centroids, new_centroids, centroids_cnt, labels,
-    design_matrix, r, mode::T = SingleThread()) where {T <: CalculationMode}
+    design_matrix, r)
 
     new_centroids .= 0.0
     centroids_cnt .= 0
@@ -358,7 +491,54 @@ function chunk_update_centroids!(centroids, new_centroids, centroids_cnt, labels
         end
         J += min_distance
     end
-    # centroids .= new_centroids ./ centroids_cnt'
+
+    return J
+end
+
+function chunk_update_centroids!(alg::LightElkan, centroids, centroids_dist, new_centroids, centroids_cnt, labels,
+    design_matrix, r)
+
+    new_centroids .= 0.0
+    centroids_cnt .= 0
+    J = 0.0
+    @inbounds for i in r
+        # calculate distance to the previous center
+        label = labels[i] > 0 ? labels[i] : 1
+        last_label = label
+        distance = 0.0
+        for j in axes(design_matrix, 1)
+            distance += (design_matrix[j, i] - centroids[j, label])^2
+        end
+
+        min_distance = distance
+
+        # we can optimize in two ways
+        # if point is close (less then centroids_dist[i, i]) to the center then there is no need to recalculate it
+        # if it's not close, then we can skip some of centers if the center is too far away from
+        # current point (Elkan triangular inequality)
+        if min_distance > centroids_dist[label, label]
+            for k in axes(centroids, 2)
+                k == last_label && continue
+                # triangular inequality
+                centroids_dist[k, label] > min_distance && continue
+                distance = 0.0
+                for j in axes(design_matrix, 1)
+                    # TODO: we can break this calculation if distance already larger than
+                    # min_distance
+                    distance += (design_matrix[j, i] - centroids[j, k])^2
+                end
+                label = min_distance > distance ? k : label
+                min_distance = min_distance > distance ? distance : min_distance
+            end
+        end
+
+        labels[i] = label
+        centroids_cnt[label] += 1
+        for j in axes(design_matrix, 1)
+            new_centroids[j, label] += design_matrix[j, i]
+        end
+        J += min_distance
+    end
 
     return J
 end
