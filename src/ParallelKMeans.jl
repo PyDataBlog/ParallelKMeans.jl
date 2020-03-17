@@ -6,10 +6,59 @@ import Base.Threads: @spawn, @threads
 export kmeans
 
 
+# All Abstract types defined 
+"""
+    TODO: Docs
+"""
 abstract type AbstractKMeansAlg end
+
+"""
+    TODO: Docs
+"""
 abstract type CalculationMode end
 
+
+"""
+    ClusteringResult
+Base type for the output of clustering algorithm.
+"""
+abstract type ClusteringResult end
+
+
+# Here we mimic `Clustering` output structure
+"""
+    KmeansResult{C,D<:Real,WC<:Real} <: ClusteringResult
+The output of [`kmeans`](@ref) and [`kmeans!`](@ref).
+# Type parameters
+ * `C<:AbstractMatrix{<:AbstractFloat}`: type of the `centers` matrix
+ * `D<:Real`: type of the assignment cost
+ * `WC<:Real`: type of the cluster weight
+ # C is the type of centers, an (abstract) matrix of size (d x k)
+# D is the type of pairwise distance computation from points to cluster centers
+# WC is the type of cluster weights, either Int (in the case where points are
+# unweighted) or eltype(weights) (in the case where points are weighted).
+"""
+struct KmeansResult{C<:AbstractMatrix{<:AbstractFloat},D<:Real,WC<:Real} <: ClusteringResult
+    centers::C                 # cluster centers (d x k)
+    assignments::Vector{Int}   # assignments (n)
+    costs::Vector{D}           # cost of the assignments (n)
+    counts::Vector{Int}        # number of points assigned to each cluster (k)
+    wcounts::Vector{WC}        # cluster weights (k)
+    totalcost::D               # total cost (i.e. objective)
+    iterations::Int            # number of elapsed iterations
+    converged::Bool            # whether the procedure converged
+end
+
+# All Structs/Classess defined
+"""
+    TODO: Docs
+"""
 struct Lloyd <: AbstractKMeansAlg end
+
+
+"""
+    TODO: Docs
+"""
 struct LightElkan <: AbstractKMeansAlg end
 
 # Single thread class to control the calculation type based on the CalculationMode
@@ -24,37 +73,7 @@ end
 # Get the number of avaialble threads for multithreading implementation
 MultiThread() = MultiThread(Threads.nthreads())
 
-# TODO here we mimic `Clustering` data structure, should thing how to integrate these
-# two packages more closely.
 
-"""
-    ClusteringResult
-Base type for the output of clustering algorithm.
-"""
-abstract type ClusteringResult end
-
-# C is the type of centers, an (abstract) matrix of size (d x k)
-# D is the type of pairwise distance computation from points to cluster centers
-# WC is the type of cluster weights, either Int (in the case where points are
-# unweighted) or eltype(weights) (in the case where points are weighted).
-"""
-    KmeansResult{C,D<:Real,WC<:Real} <: ClusteringResult
-The output of [`kmeans`](@ref) and [`kmeans!`](@ref).
-# Type parameters
- * `C<:AbstractMatrix{<:AbstractFloat}`: type of the `centers` matrix
- * `D<:Real`: type of the assignment cost
- * `WC<:Real`: type of the cluster weight
-"""
-struct KmeansResult{C<:AbstractMatrix{<:AbstractFloat},D<:Real,WC<:Real} <: ClusteringResult
-    centers::C                 # cluster centers (d x k)
-    assignments::Vector{Int}   # assignments (n)
-    costs::Vector{D}           # cost of the assignments (n)
-    counts::Vector{Int}        # number of points assigned to each cluster (k)
-    wcounts::Vector{WC}        # cluster weights (k)
-    totalcost::D               # total cost (i.e. objective)
-    iterations::Int            # number of elapsed iterations
-    converged::Bool            # whether the procedure converged
-end
 
 """
     colwise!(target, x, y, mode)
