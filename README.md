@@ -50,14 +50,14 @@ ________________________________________________________________________________
 _________________________________________________________________________________________________________
 
 ### Pending Features
-
+- [X] Implementation of Triangle inequality based on [Elkan C. (2003) "Using the Triangle Inequality to Accelerate
+-Mean"](https://www.aaai.org/Papers/ICML/2003/ICML03-022.pdf)
 - [ ] Support for DataFrame inputs.
 - [ ] Refactoring and finalizaiton of API desgin.
 - [ ] GPU support.
 - [ ] Even faster Kmeans implementation based on current literature.
 - [ ] Optimization of code base.
-- [X] Implementation of Triangle inequality based on [Elkan C. (2003) "Using the Triangle Inequality to Accelerate
--Mean"](https://www.aaai.org/Papers/ICML/2003/ICML03-022.pdf)
+
 _________________________________________________________________________________________________________
 
 ### How To Use

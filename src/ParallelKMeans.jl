@@ -8,12 +8,14 @@ export kmeans
 
 # All Abstract types defined 
 """
-    TODO: Docs
+    AbstractKMeansAlg
+    Abstract base type inherited by all sub-KMeans algorithms.
 """
 abstract type AbstractKMeansAlg end
 
 """
-    TODO: Docs
+    CalculationMode
+    Abstract base type inherited by various threading implementations.
 """
 abstract type CalculationMode end
 
@@ -28,6 +30,7 @@ abstract type ClusteringResult end
 # Here we mimic `Clustering` output structure
 """
     KmeansResult{C,D<:Real,WC<:Real} <: ClusteringResult
+
 The output of [`kmeans`](@ref) and [`kmeans!`](@ref).
 # Type parameters
  * `C<:AbstractMatrix{<:AbstractFloat}`: type of the `centers` matrix
@@ -57,21 +60,28 @@ struct Lloyd <: AbstractKMeansAlg end
 
 
 """
-    TODO: Docs
+    LightElkan()
+    TODO: Description of LightElkan algorithm here
 """
 struct LightElkan <: AbstractKMeansAlg end
 
-# Single thread class to control the calculation type based on the CalculationMode
+"""
+    SingleThread()
+Single thread class to control the calculation type based on the CalculationMode
+"""
 struct SingleThread <: CalculationMode
 end
 
-# Multi threaded implementation to control the calculation type based avaialble threads
+"""
+    MultiThread()
+Multi threaded implementation to control the calculation type based avaialble threads
+"""
 struct MultiThread <: CalculationMode
     n::Int
 end
 
 # Get the number of avaialble threads for multithreading implementation
-MultiThread() = MultiThread(Threads.nthreads())
+MultiThread() = MultiThread(Threads.nthreads())  # Uses all avaialble cores by default
 
 
 
@@ -81,9 +91,12 @@ MultiThread() = MultiThread(Threads.nthreads())
 Let X is a matrix `m x n` and Y is a vector of the length `m`. Then the `colwise!` function
 computes distance between each column in X and Y and store result
 in `target` array. Argument `mode` defines calculation mode, currently
-following modes supported
+following modes supported:
+
 - SingleThread()
 - MultiThread()
+
+This dispatch handles the colwise calculation for single threads.
 """
 colwise!(target, x, y) = colwise!(target, x, y, SingleThread())
 
@@ -97,6 +110,7 @@ function colwise!(target, x, y, mode::SingleThread)
     end
 end
 
+
 """
     spliiter(n, k)
 
@@ -108,6 +122,19 @@ function splitter(n, k)
 end
 
 
+"""
+colwise!(target, x, y, mode)
+
+Let X is a matrix `m x n` and Y is a vector of the length `m`. Then the `colwise!` function
+computes distance between each column in X and Y and store result
+in `target` array. Argument `mode` defines calculation mode, currently
+following modes supported:
+
+- SingleThread()
+- MultiThread()
+
+This dispatch handles the colwise calculation for multi-threads.
+"""
 function colwise!(target, x, y, mode::MultiThread)
     ncol = size(x, 2)
 
@@ -144,6 +171,7 @@ function chunk_colwise!(target, x, y, r)
         target[j] = res
     end
 end
+
 
 """
     smart_init(X, k; init="k-means++")
@@ -231,7 +259,10 @@ function sum_of_squares(x::Array{Float64,2}, labels::Array{Int64,1}, centre::Arr
     return s
 end
 
-# TODO generalize centroids type
+
+"""
+# TODO generalize centroids type & Docs
+"""
 function create_containers(k, d, mode::SingleThread)
     new_centroids = Array{Float64, 2}(undef, d, k)
     centroids_cnt = Vector{Int}(undef, k)
@@ -239,6 +270,10 @@ function create_containers(k, d, mode::SingleThread)
     return new_centroids, centroids_cnt
 end
 
+
+"""
+    # TODO: Docs
+"""
 function create_containers(k, d, mode::MultiThread)
     new_centroids = Vector{Array{Float64, 2}}(undef, mode.n)
     centroids_cnt = Vector{Vector{Int}}(undef, mode.n)
@@ -251,8 +286,9 @@ function create_containers(k, d, mode::MultiThread)
     return new_centroids, centroids_cnt
 end
 
+
 """
-    Kmeans(design_matrix, k; k_init="k-means++", max_iters=300, tol=1e-4, verbose=true)
+    Kmeans(design_matrix, k; k_init="k-means++", max_iters=300, tol=1e-6, verbose=true)
 
 This main function employs the K-means algorithm to cluster all examples
 in the training data (design_matrix) into k groups using either the
@@ -268,7 +304,7 @@ Details of operations can be either printed or not by setting verbose accordingl
 A tuple representing labels, centroids, and sum_squares respectively is returned.
 """
 function kmeans(design_matrix::Array{Float64, 2}, k::Int, mode::T = SingleThread();
-                k_init::String = "k-means++", max_iters::Int = 300, tol = 1e-4, verbose::Bool = true, init = nothing) where {T <: CalculationMode}
+                k_init::String = "k-means++", max_iters::Int = 300, tol = 1e-6, verbose::Bool = true, init = nothing) where {T <: CalculationMode}
     nrow, ncol = size(design_matrix)
     centroids = init == nothing ? smart_init(design_matrix, k, mode, init=k_init).centroids : init
     new_centroids, centroids_cnt = create_containers(k, nrow, mode)
@@ -314,14 +350,22 @@ function kmeans(design_matrix::Array{Float64, 2}, k::Int, mode::T = SingleThread
     return KmeansResult(centroids, labels, Float64[], Int[], Float64[], totalcost, niters, converged)
 end
 
+
+"""
+    # TODO: Docs
+"""
 kmeans(alg::Lloyd, design_matrix::Array{Float64, 2}, k::Int, mode::T = SingleThread();
-    k_init::String = "k-means++", max_iters::Int = 300, tol = 1e-4,
+    k_init::String = "k-means++", max_iters::Int = 300, tol = 1e-6,
     verbose::Bool = true, init = nothing) where {T <: CalculationMode} =
         kmeans(design_matrix, k, mode; k_init = k_init, max_iters = max_iters, tol = tol,
             verbose = verbose, init = init)
 
+
+"""
+    # TODO: Docs
+"""
 function kmeans(alg::LightElkan, design_matrix::Array{Float64, 2}, k::Int, mode::T = SingleThread();
-                k_init::String = "k-means++", max_iters::Int = 300, tol = 1e-4, verbose::Bool = true, init = nothing) where {T <: CalculationMode}
+                k_init::String = "k-means++", max_iters::Int = 300, tol = 1e-6, verbose::Bool = true, init = nothing) where {T <: CalculationMode}
     nrow, ncol = size(design_matrix)
     centroids = init == nothing ? smart_init(design_matrix, k, mode, init=k_init).centroids : deepcopy(init)
     new_centroids, centroids_cnt = create_containers(k, nrow, mode)
@@ -371,6 +415,10 @@ function kmeans(alg::LightElkan, design_matrix::Array{Float64, 2}, k::Int, mode:
     return KmeansResult(centroids, labels, Float64[], Int[], Float64[], totalcost, niters, converged)
 end
 
+
+"""
+    # TODO: Docs
+"""
 function update_centroids!(centroids, new_centroids, centroids_cnt, labels,
         design_matrix, mode::SingleThread)
 
@@ -383,6 +431,10 @@ function update_centroids!(centroids, new_centroids, centroids_cnt, labels,
     return J
 end
 
+
+"""
+    # TODO: Docs
+"""
 function update_centroids!(centroids, new_centroids, centroids_cnt, labels,
         design_matrix, mode::MultiThread)
     mode.n == 1 && return update_centroids!(centroids, new_centroids[1], centroids_cnt[1], labels,
@@ -414,7 +466,11 @@ function update_centroids!(centroids, new_centroids, centroids_cnt, labels,
     return J
 end
 
-# Lots of copy paste. It should be cleaned after api settles down.
+
+"""
+    # TODO: Docs
+    # Lots of copy paste. It should be cleaned after api settles down.
+"""
 function update_centroids_dist!(centroids_dist, centroids, mode = SingleThread())
     k = size(centroids_dist, 1) # number of clusters
     @inbounds for j in axes(centroids_dist, 2)
@@ -441,6 +497,10 @@ function update_centroids_dist!(centroids_dist, centroids, mode = SingleThread()
     centroids_dist
 end
 
+
+"""
+    # TODO: Docs
+"""
 function update_centroids!(alg::LightElkan, centroids, centroids_dist, new_centroids, centroids_cnt, labels,
         design_matrix, mode::SingleThread)
 
@@ -454,6 +514,10 @@ function update_centroids!(alg::LightElkan, centroids, centroids_dist, new_centr
     return J
 end
 
+
+"""
+    # TODO: Docs
+"""
 function update_centroids!(alg::LightElkan, centroids, centroids_dist, new_centroids, centroids_cnt, labels,
         design_matrix, mode::MultiThread)
     mode.n == 1 && return update_centroids!(alg, centroids, centroids_dist, new_centroids[1], centroids_cnt[1], labels,
@@ -486,6 +550,10 @@ function update_centroids!(alg::LightElkan, centroids, centroids_dist, new_centr
     return J
 end
 
+
+"""
+    # TODO: Docs
+"""
 function chunk_update_centroids!(centroids, new_centroids, centroids_cnt, labels,
     design_matrix, r)
 
@@ -514,6 +582,10 @@ function chunk_update_centroids!(centroids, new_centroids, centroids_cnt, labels
     return J
 end
 
+
+"""
+    # TODO: Docs
+"""
 function chunk_update_centroids!(alg::LightElkan, centroids, centroids_dist, new_centroids, centroids_cnt, labels,
     design_matrix, r)
 
