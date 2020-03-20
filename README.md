@@ -25,15 +25,30 @@ ________________________________________________________________________________
 _________________________________________________________________________________________________________
 
 ### Motivation
+It's a funny story actually led to the development of this package.
+What started off as a personal toy project trying to re-construct the K-Means algorithm in  native Julia blew up after into a heated discussion on the Julia Discourse forums after I asked for Julia optimizaition tips. Long story short, Julia community is an amazing one! Andrey Oskin offered his help and together, we decided to push the speed limits of Julia with a parallel implementation of the most famous clustering algorithm. The initial results were mind blowing so we have decided to tidy up the implementation and share with the world. 
 
+Say hello to our baby, `ParallelKMeans`!
 _________________________________________________________________________________________________________
 
 ### Installation
+You can grab the latest stable version of this package by simply running in Julia.
+Don't forget to Julia's package manager with `]`
 
-```bash
-
+```julia
+pkg> add TextAnalysis
 ```
 
+For the few (and selected) brave ones, one can simply grab the current experimental features by simply adding the experimental branch to your development environment after invoking the package manager with `]`:
+
+```julia
+dev git@github.com:PyDataBlog/ParallelKMeans.jl.git
+```
+
+Don't forget to checkout the experimental branch and you are good to go with bleeding edge features and breaks!
+```bash
+git checkout experimental
+```
 _________________________________________________________________________________________________________
 
 ### Features
@@ -41,7 +56,7 @@ ________________________________________________________________________________
 - Lightening fast implementation of Kmeans clustering algorithm even on a single thread in native Julia.
 - Support for multi-theading implementation of Kmeans clustering algorithm.
 - Kmeans++ initialization for faster and better convergence.
-- Feature 4
+- Modified version of Elkan's Triangle inequality to speed up K-Means algorithm.
 
 _________________________________________________________________________________________________________
 
@@ -51,7 +66,7 @@ ________________________________________________________________________________
 
 ### Pending Features
 - [X] Implementation of Triangle inequality based on [Elkan C. (2003) "Using the Triangle Inequality to Accelerate
--Mean"](https://www.aaai.org/Papers/ICML/2003/ICML03-022.pdf)
+K-Means"](https://www.aaai.org/Papers/ICML/2003/ICML03-022.pdf)
 - [ ] Support for DataFrame inputs.
 - [ ] Refactoring and finalizaiton of API desgin.
 - [ ] GPU support.

@@ -84,7 +84,6 @@ end
 MultiThread() = MultiThread(Threads.nthreads())  # Uses all avaialble cores by default
 
 
-
 """
     colwise!(target, x, y, mode)
 
@@ -98,8 +97,6 @@ following modes supported:
 
 This dispatch handles the colwise calculation for single threads.
 """
-colwise!(target, x, y) = colwise!(target, x, y, SingleThread())
-
 function colwise!(target, x, y, mode::SingleThread)
     @inbounds for j in axes(x, 2)
         res = 0.0
@@ -109,6 +106,10 @@ function colwise!(target, x, y, mode::SingleThread)
         target[j] = res
     end
 end
+
+
+# TODO: Why is this being dispatched here and not in a function?
+colwise!(target, x, y) = colwise!(target, x, y, SingleThread())
 
 
 """
@@ -182,8 +183,7 @@ design matrix (X) and desired groups (k) that a user supplies.
 `k-means++` algorithm is used by default with the normal random selection
 of centroids from X used if any other string is attempted.
 
-A tuple representing the centroids, number of rows, & columns respecitively
-is returned.
+A named tuple representing centroids and indices respecitively is returned.
 """
 function smart_init(X::Array{Float64, 2}, k::Int, mode::T = SingleThread();
         init::String="k-means++") where {T <: CalculationMode}
@@ -366,7 +366,9 @@ kmeans(alg::Lloyd, design_matrix::Array{Float64, 2}, k::Int, mode::T = SingleThr
 """
 function kmeans(alg::LightElkan, design_matrix::Array{Float64, 2}, k::Int, mode::T = SingleThread();
                 k_init::String = "k-means++", max_iters::Int = 300, tol = 1e-6, verbose::Bool = true, init = nothing) where {T <: CalculationMode}
+    # Get the dimensions of the design_matrix
     nrow, ncol = size(design_matrix)
+
     centroids = init == nothing ? smart_init(design_matrix, k, mode, init=k_init).centroids : deepcopy(init)
     new_centroids, centroids_cnt = create_containers(k, nrow, mode)
     # new_centroids = similar(centroids)
@@ -437,6 +439,7 @@ end
 """
 function update_centroids!(centroids, new_centroids, centroids_cnt, labels,
         design_matrix, mode::MultiThread)
+
     mode.n == 1 && return update_centroids!(centroids, new_centroids[1], centroids_cnt[1], labels,
             design_matrix, SingleThread())
 
