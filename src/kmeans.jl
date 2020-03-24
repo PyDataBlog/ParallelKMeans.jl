@@ -1,4 +1,3 @@
-
 # All Abstract types defined
 """
     AbstractKMeansAlg

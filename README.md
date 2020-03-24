@@ -29,7 +29,7 @@ You can grab the latest stable version of this package by simply running in Juli
 Don't forget to Julia's package manager with `]`
 
 ```julia
-pkg> add TextAnalysis
+pkg> add ParallelKMeans
 ```
 
 For the few (and selected) brave ones, one can simply grab the current experimental features by simply adding the experimental branch to your development environment after invoking the package manager with `]`:

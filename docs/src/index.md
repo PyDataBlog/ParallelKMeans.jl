@@ -21,7 +21,7 @@ You can grab the latest stable version of this package by simply running in Juli
 Don't forget to Julia's package manager with `]`
 
 ```julia
-pkg> add TextAnalysis
+pkg> add ParallelKMeans
 ```
 
 For the few (and selected) brave ones, one can simply grab the current experimental features by simply adding the experimental branch to your development environment after invoking the package manager with `]`:
@@ -38,13 +38,14 @@ git checkout experimental
 ## Features
 - Lightening fast implementation of Kmeans clustering algorithm even on a single thread in native Julia.
 - Support for multi-theading implementation of Kmeans clustering algorithm.
-- Kmeans++ initialization for faster and better convergence.
+- 'Kmeans++' initialization for faster and better convergence.
 - Modified version of Elkan's Triangle inequality to speed up K-Means algorithm.
 
 
 ## Pending Features
 - [X] Implementation of Triangle inequality based on [Elkan C. (2003) "Using the Triangle Inequality to Accelerate
-K-Means"](https://www.aaai.org/Papers/ICML/2003/ICML03-022.pdf)
+K-Means"](https://www.aaai.org/Papers/ICML/2003/ICML03-022.pdf).
+- [ ] Implementation of current k-means acceleration algorithms.
 - [ ] Support for DataFrame inputs.
 - [ ] Refactoring and finalizaiton of API desgin.
 - [ ] GPU support.
@@ -93,21 +94,21 @@ scatter(iris.PetalLength, iris.PetalWidth, marker_z=result.assignments,
 using ParallelKMeans
 
 # Single Thread Implementation of Lloyd's Algorithm
-b = [ParallelKMeans.kmeans(X, i, ParallelKMeans.SingleThread(),
-                          tol=1e-6, max_iters=300, verbose=false).totalcost for i = 2:10]
+b = [ParallelKMeans.kmeans(X, i, n_threads=1;
+                           tol=1e-6, max_iters=300, verbose=false).totalcost for i = 2:10]
 
 # Multi Thread Implementation of Lloyd's Algorithm
-c = [ParallelKMeans.kmeans(X, i, ParallelKMeans.MultiThread(), 
-                           tol=1e-6, max_iters=300, verbose=false).totalcost for i = 2:10]
-
-# Multi Thread Implementation plus a modified version of Elkan's triangiulity of inequaltiy
-# to boost speed
-d = [ParallelKMeans.kmeans(ParallelKMeans.LightElkan(), X, i, ParallelKMeans.MultiThread(),
-                           tol=1e-6, max_iters=300, verbose=false).totalcost for i = 2:10]
+c = [ParallelKMeans.kmeans(X, i; tol=1e-6, max_iters=300, verbose=false).totalcost for i = 2:10]
 
 # Single Thread Implementation plus a modified version of Elkan's triangiulity of inequaltiy
 # to boost speed
-e = [ParallelKMeans.kmeans(ParallelKMeans.LightElkan(), X, i, ParallelKMeans.SingleThread(),
+e = [ParallelKMeans.kmeans(ParallelKMeans.LightElkan(), X, i, 
+                           n_threads=1, tol=1e-6, max_iters=300, 
+                           verbose=false).totalcost for i = 2:10]
+
+# Multi Thread Implementation plus a modified version of Elkan's triangiulity of inequaltiy
+# to boost speed
+d = [ParallelKMeans.kmeans(ParallelKMeans.LightElkan(), X, i;
                            tol=1e-6, max_iters=300, verbose=false).totalcost for i = 2:10]
 ```
 
