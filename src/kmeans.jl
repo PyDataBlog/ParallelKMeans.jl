@@ -128,7 +128,7 @@ function kmeans!(alg, containers, design_matrix, k;
 
         if verbose
             # Show progress and terminate if J stopped decreasing.
-            println("Iteration $iter: Jclust = $J")
+            @info("Iteration $niters: Jclust = $J")
         end
 
         # Check for convergence
@@ -145,7 +145,7 @@ function kmeans!(alg, containers, design_matrix, k;
 
     # Terminate algorithm with the assumption that K-means has converged
     if verbose & converged
-        println("Successfully terminated with convergence.")
+        @info("Successfully terminated with convergence.")
     end
 
     # TODO empty placeholder vectors should be calculated

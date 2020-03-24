@@ -59,11 +59,11 @@ Taking advantage of Julia's brilliant multiple dispatch system, the package expo
 ```julia
 using ParallelKMeans
 
-# Use only 1 core of CPU
-results = kmeans(X, 3, ParallelKMeans.SingleThread(), tol=1e-6, max_iters=300)
-
 # Use all available CPU cores
-multi_results = kmeans(X, 3, ParallelKMeans.MultiThread(), tol=1e-6, max_iters=300)
+multi_results = kmeans(X, 3; max_iters=300)
+
+# Use only 1 core of CPU
+results = kmeans(X, 3; n_threads=1, max_iters=300)
 ```
 
 ### Practical Usage Examples
@@ -80,7 +80,7 @@ iris = dataset("datasets", "iris");
 # features to use for clustering
 features = collect(Matrix(iris[:, 1:4])'); 
 
-result = kmeans(features, 3, ParallelKMeans.MultiThread()); 
+result = kmeans(features, 3); 
 
 # plot with the point color mapped to the assigned cluster index
 scatter(iris.PetalLength, iris.PetalWidth, marker_z=result.assignments,
@@ -102,13 +102,12 @@ c = [ParallelKMeans.kmeans(X, i; tol=1e-6, max_iters=300, verbose=false).totalco
 
 # Single Thread Implementation plus a modified version of Elkan's triangiulity of inequaltiy
 # to boost speed
-e = [ParallelKMeans.kmeans(ParallelKMeans.LightElkan(), X, i, 
-                           n_threads=1, tol=1e-6, max_iters=300, 
-                           verbose=false).totalcost for i = 2:10]
+e = [ParallelKMeans.kmeans(LightElkan(), X, i; 
+                           n_threads=1, tol=1e-6, max_iters=300, verbose=false).totalcost for i = 2:10]
 
 # Multi Thread Implementation plus a modified version of Elkan's triangiulity of inequaltiy
 # to boost speed
-d = [ParallelKMeans.kmeans(ParallelKMeans.LightElkan(), X, i;
+d = [ParallelKMeans.kmeans(LightElkan(), X, i;
                            tol=1e-6, max_iters=300, verbose=false).totalcost for i = 2:10]
 ```
 
