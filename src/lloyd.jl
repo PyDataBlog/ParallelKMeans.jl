@@ -22,17 +22,12 @@ Internal function for the creation of all necessary intermidiate structures.
 - `labels` - vector which holds labels of corresponding points
 """
 function create_containers(::Lloyd, k, nrow, ncol, n_threads)
-    if n_threads == 1
-        new_centroids = Array{Float64, 2}(undef, nrow, k)
-        centroids_cnt = Vector{Int}(undef, k)
-    else
-        new_centroids = Vector{Array{Float64, 2}}(undef, n_threads)
-        centroids_cnt = Vector{Vector{Int}}(undef, n_threads)
+    new_centroids = Vector{Array{Float64, 2}}(undef, n_threads)
+    centroids_cnt = Vector{Vector{Int}}(undef, n_threads)
 
-        for i in 1:n_threads
-            new_centroids[i] = Array{Float64, 2}(undef, nrow, k)
-            centroids_cnt[i] = Vector{Int}(undef, k)
-        end
+    for i in 1:n_threads
+        new_centroids[i] = Array{Float64, 2}(undef, nrow, k)
+        centroids_cnt[i] = Vector{Int}(undef, k)
     end
 
     labels = Vector{Int}(undef, ncol)
@@ -43,20 +38,12 @@ end
 
 update_containers!(containers, ::Lloyd, centroids, n_threads) = nothing
 
-"""
-    # TODO: Docs
-"""
 function chunk_update_centroids!(centroids, containers, ::Lloyd,
     design_matrix, r, idx)
 
     # unpack containers for easier manipulations
-    if idx == 0
-        new_centroids = containers.new_centroids
-        centroids_cnt = containers.centroids_cnt
-    else
-        new_centroids = containers.new_centroids[idx]
-        centroids_cnt = containers.centroids_cnt[idx]
-    end
+    new_centroids = containers.new_centroids[idx]
+    centroids_cnt = containers.centroids_cnt[idx]
     labels = containers.labels
 
     new_centroids .= 0.0

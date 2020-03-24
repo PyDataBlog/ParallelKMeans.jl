@@ -166,9 +166,9 @@ function update_centroids!(centroids, containers, alg, design_matrix, n_threads)
 
     if n_threads == 1
         r = axes(design_matrix, 2)
-        J = chunk_update_centroids!(centroids, containers, alg, design_matrix, r, 0)
+        J = chunk_update_centroids!(centroids, containers, alg, design_matrix, r, 1)
 
-        centroids .= containers.new_centroids ./ containers.centroids_cnt'
+        centroids .= containers.new_centroids[1] ./ containers.centroids_cnt[1]'
     else
         ranges = splitter(ncol, n_threads)
 
