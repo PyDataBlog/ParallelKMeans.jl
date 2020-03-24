@@ -30,17 +30,12 @@ Internal function for the creation of all necessary intermidiate structures.
 - `centroids_dist` - symmetric matrix k x k which holds weighted distances between centroids
 """
 function create_containers(alg::LightElkan, k, nrow, ncol, n_threads)
-    if n_threads == 1
-        new_centroids = Array{Float64, 2}(undef, nrow, k)
-        centroids_cnt = Vector{Int}(undef, k)
-    else
-        new_centroids = Vector{Array{Float64, 2}}(undef, n_threads)
-        centroids_cnt = Vector{Vector{Int}}(undef, n_threads)
+    new_centroids = Vector{Array{Float64, 2}}(undef, n_threads)
+    centroids_cnt = Vector{Vector{Int}}(undef, n_threads)
 
-        for i in 1:n_threads
-            new_centroids[i] = Array{Float64, 2}(undef, nrow, k)
-            centroids_cnt[i] = Vector{Int}(undef, k)
-        end
+    for i in 1:n_threads
+        new_centroids[i] = Array{Float64, 2}(undef, nrow, k)
+        centroids_cnt[i] = Vector{Int}(undef, k)
     end
 
     labels = zeros(Int, ncol)
@@ -103,13 +98,8 @@ function chunk_update_centroids!(centroids, containers, ::LightElkan,
     design_matrix, r, idx)
 
     # unpack containers for easier manipulations
-    if idx == 0
-        new_centroids = containers.new_centroids
-        centroids_cnt = containers.centroids_cnt
-    else
-        new_centroids = containers.new_centroids[idx]
-        centroids_cnt = containers.centroids_cnt[idx]
-    end
+    new_centroids = containers.new_centroids[idx]
+    centroids_cnt = containers.centroids_cnt[idx]
     centroids_dist = containers.centroids_dist
     labels = containers.labels
 
