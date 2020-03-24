@@ -1,7 +1,6 @@
 module TestKMPP
 
 using ParallelKMeans
-using ParallelKMeans: MultiThread
 using Test
 using Random
 
@@ -11,7 +10,7 @@ using Random
     design_matrix = rand(10, 1000)
 
     Random.seed!(2020)
-    @test ParallelKMeans.smart_init(design_matrix, 10).indices == [33, 931, 853, 940, 926, 528, 644, 552, 460, 433]
+    @test ParallelKMeans.smart_init(design_matrix, 10, 1).indices == [33, 931, 853, 940, 926, 528, 644, 552, 460, 433]
 end
 
 @testset "multithread kmpp" begin
@@ -19,7 +18,7 @@ end
     design_matrix = rand(10, 1000)
 
     Random.seed!(2020)
-    @test ParallelKMeans.smart_init(design_matrix, 10, MultiThread(2)).indices == [33, 931, 853, 940, 926, 528, 644, 552, 460, 433]
+    @test ParallelKMeans.smart_init(design_matrix, 10, 2).indices == [33, 931, 853, 940, 926, 528, 644, 552, 460, 433]
 end
 
 end # module
