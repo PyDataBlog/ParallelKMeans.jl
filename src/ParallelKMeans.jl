@@ -9,5 +9,6 @@ include("lloyd.jl")
 include("light_elkan.jl")
 
 export kmeans
+export Lloyd, LightElkan
 
 end # module
