@@ -87,7 +87,10 @@ scatter(iris.PetalLength, iris.PetalWidth, marker_z=result.assignments,
         color=:lightrainbow, legend=false)
 
 # TODO: Add scatter plot image
+
 ```
+
+![Image description](iris_example.jpg)
 
 #### Elbow Method For The Selection Of optimal number of clusters
 ```julia
