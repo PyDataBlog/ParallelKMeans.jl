@@ -14,7 +14,14 @@ This package aims to utilize the speed of Julia and parallelization (both CPU & 
 
 
 ## K-Means Algorithm Implementation Notes
-Explain main algos and some few lines about the input dimension as well as 
+Since Julia is a column major language, the input (design matrix) expected by the package in the following format;
+
+- Design matrix X of size n×m, the i-th column of X `(X[:, i])` is a single data point in n-dimensional space.
+- Thus, the rows of the design design matrix represents the feature space with the columns representing all the training examples in this feature space.
+
+One of the pitfalls of K-Means algorithm is that it can fall into a local minima. 
+This implementation inherits this problem like every implementation does.
+As a result, it is useful in practice to restart it several times to get the correct results.
 
 ## Installation
 You can grab the latest stable version of this package by simply running in Julia.
@@ -51,6 +58,8 @@ K-Means"](https://www.aaai.org/Papers/ICML/2003/ICML03-022.pdf).
 - [ ] GPU support.
 - [ ] Even faster Kmeans implementation based on current literature.
 - [ ] Optimization of code base.
+- [ ] Improved Documentation
+- [ ] More benchmark test beyond `Scikit-Learn` and `Clustering.jl`
 
 
 ## How To Use
@@ -80,13 +89,12 @@ iris = dataset("datasets", "iris");
 # features to use for clustering
 features = collect(Matrix(iris[:, 1:4])'); 
 
+# various artificats can be accessed from the result ie assigned labels, cost value etc
 result = kmeans(features, 3); 
 
 # plot with the point color mapped to the assigned cluster index
 scatter(iris.PetalLength, iris.PetalWidth, marker_z=result.assignments,
         color=:lightrainbow, legend=false)
-
-# TODO: Add scatter plot image
 
 ```
 
@@ -105,12 +113,12 @@ c = [ParallelKMeans.kmeans(X, i; tol=1e-6, max_iters=300, verbose=false).totalco
 
 # Single Thread Implementation plus a modified version of Elkan's triangiulity of inequaltiy
 # to boost speed
-e = [ParallelKMeans.kmeans(LightElkan(), X, i; 
+d = [ParallelKMeans.kmeans(LightElkan(), X, i; 
                            n_threads=1, tol=1e-6, max_iters=300, verbose=false).totalcost for i = 2:10]
 
 # Multi Thread Implementation plus a modified version of Elkan's triangiulity of inequaltiy
 # to boost speed
-d = [ParallelKMeans.kmeans(LightElkan(), X, i;
+e = [ParallelKMeans.kmeans(LightElkan(), X, i;
                            tol=1e-6, max_iters=300, verbose=false).totalcost for i = 2:10]
 ```
 
