@@ -8,7 +8,7 @@ struct Lloyd <: AbstractKMeansAlg end
 kmeans(design_matrix, k;
     n_threads = Threads.nthreads(),
     k_init = "k-means++", max_iters = 300, tol = 1e-6,
-    verbose = true, init = nothing) =
+    verbose = false, init = nothing) =
         kmeans(Lloyd(), design_matrix, k; n_threads = n_threads, k_init = k_init, max_iters = max_iters, tol = tol,
             verbose = verbose, init = init)
 

@@ -6,11 +6,11 @@ Depth = 4
 
 ## Motivation
 It's actually a funny story led to the development of this package.
-What started off as a personal toy project trying to re-construct the K-Means algorithm in  native Julia blew up after into a heated discussion on the Julia Discourse forums after I asked for Julia optimizaition tips. Long story short, Julia community is an amazing one! Andrey Oskin offered his help and together, we decided to push the speed limits of Julia with a parallel implementation of the most famous clustering algorithm. The initial results were mind blowing so we have decided to tidy up the implementation and share with the world as a maintained Julia pacakge. 
+What started off as a personal toy project trying to re-construct the K-Means algorithm in native Julia blew up after a heated discussion on the Julia Discourse forum when I asked for Julia optimizaition tips. Long story short, Julia community is an amazing one! Andrey offered his help and together, we decided to push the speed limits of Julia with a parallel implementation of the most famous clustering algorithm. The initial results were mind blowing so we have decided to tidy up the implementation and share with the world as a maintained Julia pacakge. 
 
-Say hello to our baby, `ParallelKMeans`!
+Say hello to `ParallelKMeans`!
 
-This package aims to utilize the speed of Julia and parallelization (both CPU & GPU) by offering an extremely fast implementation of the K-Means clustering algorithm with user friendly interface.
+This package aims to utilize the speed of Julia and parallelization (both CPU & GPU) by offering an extremely fast implementation of the K-Means clustering algorithm with a friendly interface.
 
 
 ## K-Means Algorithm Implementation Notes
@@ -24,8 +24,9 @@ This implementation inherits this problem like every implementation does.
 As a result, it is useful in practice to restart it several times to get the correct results.
 
 ## Installation
-You can grab the latest stable version of this package by simply running in Julia.
-Don't forget to Julia's package manager with `]`
+You can grab the latest stable version of this package from Julia registries by simply running;
+
+*NB:* Don't forget to Julia's package manager with `]`
 
 ```julia
 pkg> add ParallelKMeans
@@ -50,7 +51,7 @@ git checkout experimental
 
 
 ## Pending Features
-- [X] Implementation of Triangle inequality based on [Elkan C. (2003) "Using the Triangle Inequality to Accelerate
+- [ ] Full Implementation of Triangle inequality based on [Elkan C. (2003) "Using the Triangle Inequality to Accelerate
 K-Means"](https://www.aaai.org/Papers/ICML/2003/ICML03-022.pdf).
 - [ ] Implementation of current k-means acceleration algorithms.
 - [ ] Support for DataFrame inputs.
@@ -59,7 +60,7 @@ K-Means"](https://www.aaai.org/Papers/ICML/2003/ICML03-022.pdf).
 - [ ] Even faster Kmeans implementation based on current literature.
 - [ ] Optimization of code base.
 - [ ] Improved Documentation
-- [ ] More benchmark test beyond `Scikit-Learn` and `Clustering.jl`
+- [ ] More benchmark tests
 
 
 ## How To Use
@@ -68,7 +69,7 @@ Taking advantage of Julia's brilliant multiple dispatch system, the package expo
 ```julia
 using ParallelKMeans
 
-# Use all available CPU cores
+# Uses all available CPU cores by default
 multi_results = kmeans(X, 3; max_iters=300)
 
 # Use only 1 core of CPU
@@ -124,6 +125,21 @@ e = [ParallelKMeans.kmeans(LightElkan(), X, i;
 
 
 ## Benchmarks
+Currently, this package is benchmarked against similar implementation in both Python and Julia. All reproducible benchmarks can be found in [ParallelKMeans/extras](https://github.com/PyDataBlog/ParallelKMeans.jl/tree/master/extras) directory. More tests in various languages are planned beyond the initial release version (`0.1.0`).
+
+*Note*: All benchmark tests are made on the same computer to help eliminate any bias. 
+
+
+Currently, the benchmark speed tests are based on the search for optimal number of clusters using the [Elbow Method](https://en.wikipedia.org/wiki/Elbow_method_(clustering)) since this is a practical use case for most practioners employing the K-Means algorithm. 
+
+
+
+|      Package      | Language |             Input Data            | Execution Time |
+|:-----------------:|:--------:|:---------------------------------:|:--------------:|
+|   Clustering.jl   |   Julia  | (1 Million examples, 30 features) |                |
+| ParallelKMeans.jl |   Julia  | (1 Million examples, 30 features) |                |
+|    Scikit-Learn   |  Python  | (1 Million examples, 30 features) |                |
+|        Knor       |     R    | (1 Million examples, 30 features) |                |
 
 
 ## Release History 
@@ -131,7 +147,11 @@ e = [ParallelKMeans.kmeans(LightElkan(), X, i;
 
 
 ## Contributing
+Ultimately, we see this package as potentially the one stop shop for everything related to KMeans algorithm and its speed up variants. We are open to new implementations and ideas from anyone interested in this project.
 
+Detailed contribution guidelines will be added in upcoming releases.
+
+<!--- Insert Contribution Guidelines --->
 
 ```@index
 ```
