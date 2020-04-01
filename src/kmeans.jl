@@ -129,7 +129,7 @@ function kmeans!(alg, containers, design_matrix, k;
 
         if verbose
             # Show progress and terminate if J stopped decreasing.
-            println("Iteration $iter: Jclust = $J")
+            println("Iteration $niters: Jclust = $J")
         end
 
         # Check for convergence
@@ -192,5 +192,5 @@ function update_centroids!(centroids, containers, alg, design_matrix, n_threads)
         centroids .= containers.new_centroids[1] ./ containers.centroids_cnt[1]'
     end
 
-    return J/ncol
+    return J
 end
