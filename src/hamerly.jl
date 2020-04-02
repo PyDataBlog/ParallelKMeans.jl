@@ -303,11 +303,11 @@ function chunk_update_bounds!(containers, r, r1, r2, pr1, pr2)
 
     @inbounds for i in r
         label = labels[i]
-        ub[i] += 2*sqrt(ub[i] * p[label]) + p[label]
+        ub[i] += 2*sqrt(abs(ub[i] * p[label])) + p[label]
         if r1 == label
-            lb[i] += pr2 - 2*sqrt(pr2*lb[i])
+            lb[i] += pr2 - 2*sqrt(abs(pr2*lb[i]))
         else
-            lb[i] += pr1 - 2*sqrt(pr1*lb[i])
+            lb[i] += pr1 - 2*sqrt(abs(pr1*lb[i]))
         end
     end
 end
