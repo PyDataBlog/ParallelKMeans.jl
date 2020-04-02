@@ -20,4 +20,43 @@ end
     @test double_argmax([0.5, 0, 0]) == (1, 2)
 end
 
+@testset "singlethread linear separation" begin
+    # with the same amount of iterations answer should be the same as in Lloyd case
+    Random.seed!(2020)
+
+    X = rand(3, 100)
+    res = kmeans(Hamerly(), X, 3; n_threads = 1, tol = 1e-10, max_iters = 10, verbose = false)
+
+    @test res.totalcost ≈ 14.16198704459199
+    @test !res.converged
+    @test res.iterations == 11
+
+    Random.seed!(2020)
+    X = rand(3, 100)
+    res = kmeans(Hamerly(), X, 3; n_threads = 1, tol = 1e-10, max_iters = 1000, verbose = false)
+
+    @test res.totalcost ≈ 14.161987044591992
+    @test res.converged
+    @test res.iterations == 11
+end
+
+@testset "multithread linear separation quasi two threads" begin
+    Random.seed!(2020)
+
+    X = rand(3, 100)
+    res = kmeans(Hamerly(), X, 3; n_threads = 2, tol = 1e-10, max_iters = 10, verbose = false)
+
+    @test res.totalcost ≈ 14.16198704459199
+    @test !res.converged
+    @test res.iterations == 11
+
+    Random.seed!(2020)
+    X = rand(3, 100)
+    res = kmeans(Hamerly(), X, 3; n_threads = 2, tol = 1e-10, max_iters = 1000, verbose = false)
+
+    @test res.totalcost ≈ 14.161987044591992
+    @test res.converged
+    @test res.iterations == 11
+end
+
 end # module
