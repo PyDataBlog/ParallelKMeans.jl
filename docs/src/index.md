@@ -10,8 +10,9 @@ What started off as a personal toy project trying to re-construct the K-Means al
 
 Say hello to `ParallelKMeans`!
 
-This package aims to utilize the speed of Julia and parallelization (both CPU & GPU) by offering an extremely fast implementation of the K-Means clustering algorithm with a friendly interface.
+This package aims to utilize the speed of Julia and parallelization (both CPU & GPU) to offer an extremely fast implementation of the K-Means clustering algorithm and its variations via a friendly interface for practioners.
 
+In short, we hope this package will eventually mature as the "one stop" shop for everything KMeans on both CPUs and GPUs.
 
 ## K-Means Algorithm Implementation Notes
 Since Julia is a column major language, the input (design matrix) expected by the package in the following format;
@@ -51,9 +52,10 @@ git checkout experimental
 
 
 ## Pending Features
+- [ ] Implementation of Hamerly implementation. 
 - [ ] Full Implementation of Triangle inequality based on [Elkan C. (2003) "Using the Triangle Inequality to Accelerate
 K-Means"](https://www.aaai.org/Papers/ICML/2003/ICML03-022.pdf).
-- [ ] Implementation of current k-means acceleration algorithms.
+- [ ] Implementation of [Geometric methods to accelerate k-means algorithm](http://cs.baylor.edu/~hamerly/papers/sdm2016_rysavy_hamerly.pdf).
 - [ ] Support for DataFrame inputs.
 - [ ] Refactoring and finalizaiton of API desgin.
 - [ ] GPU support.
@@ -64,7 +66,7 @@ K-Means"](https://www.aaai.org/Papers/ICML/2003/ICML03-022.pdf).
 
 
 ## How To Use
-Taking advantage of Julia's brilliant multiple dispatch system, the package exposes users to a very easy to use API.
+Taking advantage of Julia's brilliant multiple dispatch system, the package exposes users to a very easy to use API. 
 
 ```julia
 using ParallelKMeans
@@ -75,6 +77,23 @@ multi_results = kmeans(X, 3; max_iters=300)
 # Use only 1 core of CPU
 results = kmeans(X, 3; n_threads=1, max_iters=300)
 ```
+
+The main design goal is to offer all available variations of the KMeans algorithm to end users as composable elements. By default, Lloyd's implementation is used but users can specify different variations of the KMeans clustering algorithm via this interface
+
+```julia
+some_results = kmeans([algo], data_matrix, k; kwargs)
+
+# example
+r = kmeans(Lloyd(), X, 4)  # same result as the default 
+```
+
+### Supported KMeans algorithm variations.
+- [Lloyd()](https://cs.nyu.edu/~roweis/csc2515-2006/readings/lloyd57.pdf) 
+- [Hamerly()](https://www.researchgate.net/publication/220906984_Making_k-means_Even_Faster) 
+- [Geometric()](http://cs.baylor.edu/~hamerly/papers/sdm2016_rysavy_hamerly.pdf) - (Coming soon)
+- [Elkan()](https://www.aaai.org/Papers/ICML/2003/ICML03-022.pdf) - (Coming soon) 
+- [MiniBatch()](https://www.eecs.tufts.edu/~dsculley/papers/fastkmeans.pdf) - (Coming soon)
+
 
 ### Practical Usage Examples
 Some of the common usage examples of this package are as follows:
@@ -109,18 +128,9 @@ using ParallelKMeans
 b = [ParallelKMeans.kmeans(X, i, n_threads=1;
                            tol=1e-6, max_iters=300, verbose=false).totalcost for i = 2:10]
 
-# Multi Thread Implementation of Lloyd's Algorithm
+# Multi Thread Implementation of Lloyd's Algorithm by default
 c = [ParallelKMeans.kmeans(X, i; tol=1e-6, max_iters=300, verbose=false).totalcost for i = 2:10]
 
-# Single Thread Implementation plus a modified version of Elkan's triangiulity of inequaltiy
-# to boost speed
-d = [ParallelKMeans.kmeans(LightElkan(), X, i; 
-                           n_threads=1, tol=1e-6, max_iters=300, verbose=false).totalcost for i = 2:10]
-
-# Multi Thread Implementation plus a modified version of Elkan's triangiulity of inequaltiy
-# to boost speed
-e = [ParallelKMeans.kmeans(LightElkan(), X, i;
-                           tol=1e-6, max_iters=300, verbose=false).totalcost for i = 2:10]
 ```
 
 
