@@ -42,6 +42,66 @@ struct KmeansResult{C<:AbstractMatrix{<:AbstractFloat},D<:Real,WC<:Real} <: Clus
 end
 
 """
+    @parallelize(n_threads, ncol, f)
+
+Parallelize function and run it over n_threads. Function should require following conditions:
+1. It should not return any values.
+1. It should accept parameters two parameters at the end of the argument list. First
+accepted parameter is `range`, which defines chunk used in calculations. Second
+parameter is `idx` which defines id of the container where results can be stored.
+
+`ncol` argument defines range 1:ncol which is sliced in `n_threads` chunks.
+"""
+macro parallelize(n_threads, ncol, f)
+    for i in 1:length(f.args)
+        f.args[i] = :($(esc(f.args[i])))
+    end
+    single_thread_chunk = copy(f)
+    push!(single_thread_chunk.args, :(1:$(esc(ncol))))
+    push!(single_thread_chunk.args, 1)
+
+    multi_thread_chunk = copy(f)
+    push!(multi_thread_chunk.args, :(ranges[i]))
+    push!(multi_thread_chunk.args, :(i))
+
+    last_multi_thread_chunk = copy(f)
+    push!(last_multi_thread_chunk.args, :(ranges[end]))
+    push!(last_multi_thread_chunk.args, :($(esc(n_threads))))
+
+    return quote
+        if $(esc(n_threads)) == 1
+            $single_thread_chunk
+        else
+            local ranges = splitter($(esc(ncol)), $(esc(n_threads)))
+            local waiting_list = $(esc(Vector)){$(esc(Task))}(undef, $(esc(n_threads)) - 1)
+            for i in 1:$(esc(n_threads)) - 1
+                waiting_list[i] = @spawn $multi_thread_chunk
+            end
+
+            $last_multi_thread_chunk
+
+            for i in 1:$(esc(n_threads)) - 1
+                wait(waiting_list[i])
+            end
+        end
+    end
+end
+
+"""
+    distance(X1, X2, i1, i2)
+
+Allocationless calculation of square eucledean distance between vectors X1[:, i1] and X2[:, i2]
+"""
+function distance(X1, X2, i1, i2)
+    d = 0.0
+    @inbounds for i in axes(X1, 1)
+        d += (X1[i, i1] - X2[i, i2])^2
+    end
+
+    return d
+end
+
+"""
     sum_of_squares(x, labels, centre, k)
 
 This function computes the total sum of squares based on the assigned (labels)
@@ -61,6 +121,17 @@ function sum_of_squares(x, labels, centre)
     return s
 end
 
+function sum_of_squares(containers, x, labels, centre, r, idx)
+    s = 0.0
+
+    @inbounds for j in r
+        for i in axes(x, 1)
+            s += (x[i, j] - centre[i, labels[j]])^2
+        end
+    end
+
+    containers.sum_of_squares[idx] = s
+end
 
 """
     Kmeans([alg::AbstractKMeansAlg,] design_matrix, k; n_threads = nthreads(), k_init="k-means++", max_iters=300, tol=1e-6, verbose=true)
@@ -129,7 +200,7 @@ function kmeans!(alg, containers, design_matrix, k;
 
         if verbose
             # Show progress and terminate if J stopped decreasing.
-            println("Iteration $iter: Jclust = $J")
+            println("Iteration $niters: Jclust = $J")
         end
 
         # Check for convergence
@@ -192,5 +263,5 @@ function update_centroids!(centroids, containers, alg, design_matrix, n_threads)
         centroids .= containers.new_centroids[1] ./ containers.centroids_cnt[1]'
     end
 
-    return J/ncol
+    return J
 end
