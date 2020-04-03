@@ -19,20 +19,24 @@ function kmeans!(alg::Hamerly, containers, design_matrix, k;
     nrow, ncol = size(design_matrix)
     centroids = init == nothing ? smart_init(design_matrix, k, n_threads, init=k_init).centroids : deepcopy(init)
 
-    initialize!(alg, containers, centroids, design_matrix, n_threads)
+    @parallelize n_threads ncol chunk_initialize!(alg, containers, centroids, design_matrix)
 
     converged = false
     niters = 1
     J_previous = 0.0
+    p = containers.p
 
     # Update centroids & labels with closest members until convergence
-
     while niters <= max_iters
         update_containers!(containers, alg, centroids, n_threads)
-        update_centroids!(centroids, containers, alg, design_matrix, n_threads)
+        @parallelize n_threads ncol chunk_update_centroids!(centroids, containers, alg, design_matrix)
+        collect_containers(alg, containers, n_threads)
+
         J = sum(containers.ub)
         move_centers!(centroids, containers, alg)
-        update_bounds!(containers, n_threads)
+
+        r1, r2, pr1, pr2 = double_argmax(p)
+        @parallelize n_threads ncol chunk_update_bounds!(containers, r1, r2, pr1, pr2)
 
         if verbose
             # Show progress and terminate if J stopped decreasing.
@@ -49,7 +53,8 @@ function kmeans!(alg::Hamerly, containers, design_matrix, k;
         niters += 1
     end
 
-    totalcost = sum_of_squares(design_matrix, containers.labels, centroids)
+    @parallelize n_threads ncol sum_of_squares(containers, design_matrix, containers.labels, centroids)
+    totalcost = sum(containers.sum_of_squares)
 
     # Terminate algorithm with the assumption that K-means has converged
     if verbose & converged
@@ -101,6 +106,9 @@ function create_containers(alg::Hamerly, k, nrow, ncol, n_threads)
     # distance from the center to the closest other center
     s = Vector{Float64}(undef, k)
 
+    # total_sum_calculation
+    sum_of_squares = Vector{Float64}(undef, n_threads)
+
     return (
         centroids_new = centroids_new,
         centroids_cnt = centroids_cnt,
@@ -109,31 +117,15 @@ function create_containers(alg::Hamerly, k, nrow, ncol, n_threads)
         lb = lb,
         p = p,
         s = s,
+        sum_of_squares = sum_of_squares
     )
 end
 
-function initialize!(alg::Hamerly, containers, centroids, design_matrix, n_threads)
-    ncol = size(design_matrix, 2)
+"""
+    chunk_initialize!(alg::Hamerly, containers, centroids, design_matrix, r, idx)
 
-    if n_threads == 1
-        r = axes(design_matrix, 2)
-        chunk_initialize!(alg, containers, centroids, design_matrix, r, 1)
-    else
-        ranges = splitter(ncol, n_threads)
-
-        waiting_list = Vector{Task}(undef, n_threads - 1)
-
-        for i in 1:n_threads - 1
-            waiting_list[i] = @spawn chunk_initialize!(alg, containers, centroids,
-                design_matrix, ranges[i], i + 1)
-        end
-
-        chunk_initialize!(alg, containers, centroids, design_matrix, ranges[end], 1)
-
-        wait.(waiting_list)
-    end
-end
-
+Initial calulation of all bounds and points labeling.
+"""
 function chunk_initialize!(alg::Hamerly, containers, centroids, design_matrix, r, idx)
     centroids_cnt = containers.centroids_cnt[idx]
     centroids_new = containers.centroids_new[idx]
@@ -147,6 +139,11 @@ function chunk_initialize!(alg::Hamerly, containers, centroids, design_matrix, r
     end
 end
 
+"""
+    update_containers!(containers, ::Hamerly, centroids, n_threads)
+
+Calculates minimum distances from centers to each other.
+"""
 function update_containers!(containers, ::Hamerly, centroids, n_threads)
     s = containers.s
     s .= Inf
@@ -160,39 +157,14 @@ function update_containers!(containers, ::Hamerly, centroids, n_threads)
     end
 end
 
-function update_centroids!(centroids, containers, alg::Hamerly, design_matrix, n_threads)
+"""
+    chunk_update_centroids!(centroids, containers, alg::Hamerly, design_matrix, r, idx)
 
-    if n_threads == 1
-        r = axes(design_matrix, 2)
-        chunk_update_centroids!(centroids, containers, alg, design_matrix, r, 1)
-    else
-        ncol = size(design_matrix, 2)
-        ranges = splitter(ncol, n_threads)
-
-        waiting_list = Vector{Task}(undef, n_threads - 1)
-
-        for i in 1:length(ranges) - 1
-            waiting_list[i] = @spawn chunk_update_centroids!(centroids, containers,
-                alg, design_matrix, ranges[i], i)
-        end
-
-        chunk_update_centroids!(centroids, containers, alg, design_matrix, ranges[end], n_threads)
-
-        wait.(waiting_list)
-
-    end
-
-    collect_containers(alg, containers, n_threads)
-end
-
-function chunk_update_centroids!(
-    centroids,
-    containers,
-    alg::Hamerly,
-    design_matrix,
-    r,
-    idx,
-)
+Detailed description of this function can be found in the original paper. It iterates through
+all points and tries to skip some calculation using known upper and lower bounds of distances
+from point to centers. If it fails to skip than it fall back to generic `point_all_centers!` function.
+"""
+function chunk_update_centroids!(centroids, containers, alg::Hamerly, design_matrix, r, idx)
 
     # unpack containers for easier manipulations
     centroids_new = containers.centroids_new[idx]
@@ -227,6 +199,11 @@ function chunk_update_centroids!(
     end
 end
 
+"""
+    point_all_centers!(containers, centroids, design_matrix, i)
+
+Calculates new labels and upper and lower bounds for all points.
+"""
 function point_all_centers!(containers, centroids, design_matrix, i)
     ub = containers.ub
     lb = containers.lb
@@ -253,6 +230,12 @@ function point_all_centers!(containers, centroids, design_matrix, i)
     return label
 end
 
+"""
+    move_centers!(centroids, containers, ::Hamerly)
+
+Calculates new positions of centers and distance they have moved. Results are stored
+in `centroids` and `p` respectively.
+"""
 function move_centers!(centroids, containers, ::Hamerly)
     centroids_new = containers.centroids_new[end]
     p = containers.p
@@ -267,35 +250,28 @@ function move_centers!(centroids, containers, ::Hamerly)
     end
 end
 
-function update_bounds!(containers, n_threads)
-    p = containers.p
+"""
+    chunk_update_bounds!(containers, r1, r2, pr1, pr2, r, idx)
 
-    r1, r2 = double_argmax(p)
-    pr1 = p[r1]
-    pr2 = p[r2]
+Updates upper and lower bounds of point distance to the centers, with regard to the centers movement.
+Since bounds are squred distance, `sqrt` is used to make corresponding estimation, unlike
+the original paper, where usual metric is used.
 
-    if n_threads == 1
-        r = axes(containers.ub, 1)
-        chunk_update_bounds!(containers, r, r1, r2, pr1, pr2)
-    else
-        ncol = length(containers.ub)
-        ranges = splitter(ncol, n_threads)
+Using notation from original paper, `u` is upper bound and `a` is `labels`, so
 
-        waiting_list = Vector{Task}(undef, n_threads - 1)
+`u[i] -> u[i] + p[a[i]]`
 
-        for i in 1:n_threads - 1
-            waiting_list[i] = @spawn chunk_update_bounds!(containers, ranges[i], r1, r2, pr1, pr2)
-        end
+then squared distance is
 
-        chunk_update_bounds!(containers, ranges[end], r1, r2, pr1, pr2)
+`u[i]^2 -> (u[i] + p[a[i]])^2 = u[i]^2 + 2 p[a[i]] u[i] + p[a[i]]^2`
 
-        for i in 1:n_threads - 1
-            wait(waiting_list[i])
-        end
-    end
-end
+Taking into account that in our noations `p^2 -> p`, `u^2 -> ub` we obtain
 
-function chunk_update_bounds!(containers, r, r1, r2, pr1, pr2)
+`ub[i] -> ub[i] + 2 sqrt(p[a[i]] ub[i]) + p[a[i]]`
+
+The same applies to the lower bounds.
+"""
+function chunk_update_bounds!(containers, r1, r2, pr1, pr2, r, idx)
     p = containers.p
     ub = containers.ub
     lb = containers.lb
@@ -312,6 +288,11 @@ function chunk_update_bounds!(containers, r, r1, r2, pr1, pr2)
     end
 end
 
+"""
+    double_argmax(p)
+
+Finds maximum and next after maximum arguments.
+"""
 function double_argmax(p)
     r1, r2 = 1, 1
     d1 = p[1]
@@ -328,19 +309,5 @@ function double_argmax(p)
         end
     end
 
-    r1, r2
-end
-
-"""
-    distance(X1, X2, i1, i2)
-
-Allocation less calculation of square eucledean distance between vectors X1[:, i1] and X2[:, i2]
-"""
-function distance(X1, X2, i1, i2)
-    d = 0.0
-    @inbounds for i in axes(X1, 1)
-        d += (X1[i, i1] - X2[i, i2])^2
-    end
-
-    return d
+    r1, r2, d1, d2
 end
