@@ -52,7 +52,7 @@ git checkout experimental
 
 
 ## Pending Features
-- [ ] Implementation of Hamerly implementation. 
+- [X] Implementation of [Hamerly implementation](https://www.researchgate.net/publication/220906984_Making_k-means_Even_Faster). 
 - [ ] Full Implementation of Triangle inequality based on [Elkan C. (2003) "Using the Triangle Inequality to Accelerate
 K-Means"](https://www.aaai.org/Papers/ICML/2003/ICML03-022.pdf).
 - [ ] Implementation of [Geometric methods to accelerate k-means algorithm](http://cs.baylor.edu/~hamerly/papers/sdm2016_rysavy_hamerly.pdf).
@@ -81,10 +81,10 @@ results = kmeans(X, 3; n_threads=1, max_iters=300)
 The main design goal is to offer all available variations of the KMeans algorithm to end users as composable elements. By default, Lloyd's implementation is used but users can specify different variations of the KMeans clustering algorithm via this interface
 
 ```julia
-some_results = kmeans([algo], data_matrix, k; kwargs)
+some_results = kmeans([algo], input_matrix, k; kwargs)
 
 # example
-r = kmeans(Lloyd(), X, 4)  # same result as the default 
+r = kmeans(Lloyd(), X, 3)  # same result as the default 
 ```
 
 ### Supported KMeans algorithm variations.
@@ -143,6 +143,8 @@ Currently, this package is benchmarked against similar implementation in both Py
 Currently, the benchmark speed tests are based on the search for optimal number of clusters using the [Elbow Method](https://en.wikipedia.org/wiki/Elbow_method_(clustering)) since this is a practical use case for most practioners employing the K-Means algorithm. 
 
 
+<!-- Insert Benchmark Plot Right Below -->
+
 
 |      Package      | Language |             Input Data            | Execution Time |
 |:-----------------:|:--------:|:---------------------------------:|:--------------:|
@@ -161,7 +163,7 @@ Ultimately, we see this package as potentially the one stop shop for everything 
 
 Detailed contribution guidelines will be added in upcoming releases.
 
-<!--- Insert Contribution Guidelines --->
+<!--- Insert Contribution Guidelines Below --->
 
 ```@index
 ```
