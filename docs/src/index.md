@@ -53,8 +53,7 @@ git checkout experimental
 
 ## Pending Features
 - [X] Implementation of [Hamerly implementation](https://www.researchgate.net/publication/220906984_Making_k-means_Even_Faster). 
-- [ ] Full Implementation of Triangle inequality based on [Elkan C. (2003) "Using the Triangle Inequality to Accelerate
-K-Means"](https://www.aaai.org/Papers/ICML/2003/ICML03-022.pdf).
+- [ ] Full Implementation of Triangle inequality based on [Elkan - 2003 Using the Triangle Inequality to Accelerate K-Means"](https://www.aaai.org/Papers/ICML/2003/ICML03-022.pdf).
 - [ ] Implementation of [Geometric methods to accelerate k-means algorithm](http://cs.baylor.edu/~hamerly/papers/sdm2016_rysavy_hamerly.pdf).
 - [ ] Support for DataFrame inputs.
 - [ ] Refactoring and finalizaiton of API desgin.
@@ -143,15 +142,7 @@ Currently, this package is benchmarked against similar implementation in both Py
 Currently, the benchmark speed tests are based on the search for optimal number of clusters using the [Elbow Method](https://en.wikipedia.org/wiki/Elbow_method_(clustering)) since this is a practical use case for most practioners employing the K-Means algorithm. 
 
 
-<!-- Insert Benchmark Plot Right Below -->
-
-
-|      Package      | Language |             Input Data            | Execution Time |
-|:-----------------:|:--------:|:---------------------------------:|:--------------:|
-|   Clustering.jl   |   Julia  | (1 Million examples, 30 features) |                |
-| ParallelKMeans.jl |   Julia  | (1 Million examples, 30 features) |                |
-|    Scikit-Learn   |  Python  | (1 Million examples, 30 features) |                |
-|        Knor       |     R    | (1 Million examples, 30 features) |                |
+![benchmark_image.png](benchmark_image.png)
 
 
 ## Release History 

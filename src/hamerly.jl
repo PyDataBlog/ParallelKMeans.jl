@@ -4,9 +4,6 @@
 struct Hamerly <: AbstractKMeansAlg end
 
 
-"""
-    TODO: description
-"""
 function kmeans(alg::Hamerly, design_matrix, k;
                 n_threads = Threads.nthreads(),
                 k_init = "k-means++", max_iters = 300,
@@ -20,9 +17,6 @@ function kmeans(alg::Hamerly, design_matrix, k;
 end
 
 
-"""
-    TODO: description
-"""
 function kmeans!(alg::Hamerly, containers, design_matrix, k;
                 n_threads = Threads.nthreads(),
                 k_init = "k-means++", max_iters = 300,
@@ -79,9 +73,6 @@ function kmeans!(alg::Hamerly, containers, design_matrix, k;
 end
 
 
-"""
-    TODO: description
-"""
 function collect_containers(alg::Hamerly, containers, n_threads)
     if n_threads == 1
         @inbounds containers.centroids_new[end] .= containers.centroids_new[1] ./ containers.centroids_cnt[1]'
@@ -98,9 +89,6 @@ function collect_containers(alg::Hamerly, containers, n_threads)
 end
 
 
-"""
-    TODO: description
-"""
 function create_containers(alg::Hamerly, k, nrow, ncol, n_threads)
     lng = n_threads + 1
     centroids_new = Vector{Array{Float64,2}}(undef, lng)
