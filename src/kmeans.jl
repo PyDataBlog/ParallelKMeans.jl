@@ -1,4 +1,3 @@
-
 # All Abstract types defined
 """
     AbstractKMeansAlg
@@ -163,7 +162,7 @@ A `KmeansResult` structure representing labels, centroids, and sum_squares is re
 function kmeans(alg, design_matrix, k;
                 n_threads = Threads.nthreads(),
                 k_init = "k-means++", max_iters = 300,
-                tol = 1e-6, verbose = true, init = nothing)
+                tol = 1e-6, verbose = false, init = nothing)
     nrow, ncol = size(design_matrix)
     containers = create_containers(alg, k, nrow, ncol, n_threads)
 
@@ -171,6 +170,7 @@ function kmeans(alg, design_matrix, k;
                     k_init = k_init, max_iters = max_iters, tol = tol,
                     verbose = verbose, init = init)
 end
+
 
 """
     Kmeans!(alg::AbstractKMeansAlg, containers, design_matrix, k; n_threads = nthreads(), k_init="k-means++", max_iters=300, tol=1e-6, verbose=true)
@@ -184,7 +184,7 @@ centroids and so on, which are used during calculations.
 function kmeans!(alg, containers, design_matrix, k;
                 n_threads = Threads.nthreads(),
                 k_init = "k-means++", max_iters = 300,
-                tol = 1e-6, verbose = true, init = nothing)
+                tol = 1e-6, verbose = false, init = nothing)
     nrow, ncol = size(design_matrix)
     centroids = init == nothing ? smart_init(design_matrix, k, n_threads, init=k_init).centroids : deepcopy(init)
 

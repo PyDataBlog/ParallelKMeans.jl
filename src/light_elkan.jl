@@ -19,6 +19,7 @@ worser than basic LLoyd algorithm.
 """
 struct LightElkan <: AbstractKMeansAlg end
 
+
 """
     create_containers(::LightElkan, k, nrow, ncol, n_threads)
 
