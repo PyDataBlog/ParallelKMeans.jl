@@ -86,6 +86,15 @@ some_results = kmeans([algo], input_matrix, k; kwargs)
 r = kmeans(Lloyd(), X, 3)  # same result as the default 
 ```
 
+```julia
+# r contains all the learned artifacts which can be accessed as;
+r.centers               # cluster centers (d x k)
+r.assignments           # label assignments (n)
+r.totalcost             # total cost (i.e. objective)
+r.iterations            # number of elapsed iterations
+r.converged             # whether the procedure converged
+```
+
 ### Supported KMeans algorithm variations.
 - [Lloyd()](https://cs.nyu.edu/~roweis/csc2515-2006/readings/lloyd57.pdf) 
 - [Hamerly()](https://www.researchgate.net/publication/220906984_Making_k-means_Even_Faster) 
@@ -124,8 +133,7 @@ scatter(iris.PetalLength, iris.PetalWidth, marker_z=result.assignments,
 using ParallelKMeans
 
 # Single Thread Implementation of Lloyd's Algorithm
-b = [ParallelKMeans.kmeans(X, i, n_threads=1;
-                           tol=1e-6, max_iters=300, verbose=false).totalcost for i = 2:10]
+b = [ParallelKMeans.kmeans(X, i, n_threads=1; tol=1e-6, max_iters=300, verbose=false).totalcost for i = 2:10]
 
 # Multi Thread Implementation of Lloyd's Algorithm by default
 c = [ParallelKMeans.kmeans(X, i; tol=1e-6, max_iters=300, verbose=false).totalcost for i = 2:10]
@@ -142,7 +150,23 @@ Currently, this package is benchmarked against similar implementation in both Py
 Currently, the benchmark speed tests are based on the search for optimal number of clusters using the [Elbow Method](https://en.wikipedia.org/wiki/Elbow_method_(clustering)) since this is a practical use case for most practioners employing the K-Means algorithm. 
 
 
+### Benchmark Results
+
 ![benchmark_image.png](benchmark_image.png)
+
+
+_________________________________________________________________________________________________________
+
+| 1 million (ms) | 100k (ms) | 10k (ms) | 1k (ms) | package                 | language |
+|:--------------:|:---------:|:--------:|:-------:|:-----------------------:|:--------:|
+| 600184.00      | 31959.00  | 832.25   | 18.19   | Clustering.jl           | Julia    |
+| 35733.00       | 4473.00   | 255.71   | 8.94    | Lloyd                   | Julia    |
+| 12617.00       | 1655.00   | 122.53   | 7.98    | Hamerly                 | Julia    |
+| 1430000.00     | 146000.00 | 5770.00  | 344.00  | Sklearn Kmeans          | Python   |
+| 30100.00       | 3750.00   | 613.00   | 201.00  | Sklearn MiniBatchKmeans | Python   |
+| 218200.00      | 15510.00  | 733.70   | 19.47   | Knor                    | R        |
+
+_________________________________________________________________________________________________________
 
 
 ## Release History 
