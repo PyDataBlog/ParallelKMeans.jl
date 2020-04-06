@@ -47,9 +47,9 @@ ________________________________________________________________________________
 ### Features
 
 - Lightening fast implementation of Kmeans clustering algorithm even on a single thread in native Julia.
-- Support for multi-theading implementation of Kmeans clustering algorithm.
+- Support for multi-theading implementation of K-Means clustering algorithm.
 - Kmeans++ initialization for faster and better convergence.
-- Modified version of Elkan's Triangle inequality to speed up K-Means algorithm.
+- Implementation of all the variants of the K-Means algorithm.
 
 _________________________________________________________________________________________________________
 
