@@ -1,5 +1,19 @@
 """
-    TODO: Hamerly description
+    Hamerly()
+
+Hamerly algorithm implementation, based on "Hamerly, Greg. (2010). Making k-means Even Faster.
+ Proceedings of the 2010 SIAM International Conference on Data Mining. 130-140. 10.1137/1.9781611972801.12."
+
+This algorithm provides much faster convergence than Lloyd algorithm with realtively small increase in
+memory footprint. It is especially suitable for low to medium dimensional input data.
+
+It can be used directly in `kmeans` function
+
+```julia
+X = rand(30, 100_000)   # 100_000 random points in 30 dimensions
+
+kmeans(Hamerly(), X, 3) # 3 clusters, Hamerly algorithm
+```
 """
 struct Hamerly <: AbstractKMeansAlg end
 
@@ -261,22 +275,6 @@ end
     chunk_update_bounds!(containers, r1, r2, pr1, pr2, r, idx)
 
 Updates upper and lower bounds of point distance to the centers, with regard to the centers movement.
-Since bounds are squred distance, `sqrt` is used to make corresponding estimation, unlike
-the original paper, where usual metric is used.
-
-Using notation from original paper, `u` is upper bound and `a` is `labels`, so
-
-`u[i] -> u[i] + p[a[i]]`
-
-then squared distance is
-
-`u[i]^2 -> (u[i] + p[a[i]])^2 = u[i]^2 + 2 p[a[i]] u[i] + p[a[i]]^2`
-
-Taking into account that in our noations `p^2 -> p`, `u^2 -> ub` we obtain
-
-`ub[i] -> ub[i] + 2 sqrt(p[a[i]] ub[i]) + p[a[i]]`
-
-The same applies to the lower bounds.
 """
 function chunk_update_bounds!(containers, r1, r2, pr1, pr2, r, idx)
     p = containers.p
@@ -284,6 +282,22 @@ function chunk_update_bounds!(containers, r1, r2, pr1, pr2, r, idx)
     lb = containers.lb
     labels = containers.labels
 
+    # Since bounds are squred distance, `sqrt` is used to make corresponding estimation, unlike
+    # the original paper, where usual metric is used.
+    #
+    # Using notation from original paper, `u` is upper bound and `a` is `labels`, so
+    #
+    # `u[i] -> u[i] + p[a[i]]`
+    #
+    # then squared distance is
+    #
+    # `u[i]^2 -> (u[i] + p[a[i]])^2 = u[i]^2 + 2 p[a[i]] u[i] + p[a[i]]^2`
+    #
+    # Taking into account that in our noations `p^2 -> p`, `u^2 -> ub` we obtain
+    #
+    # `ub[i] -> ub[i] + 2 sqrt(p[a[i]] ub[i]) + p[a[i]]`
+    #
+    # The same applies to the lower bounds.
     @inbounds for i in r
         label = labels[i]
         ub[i] += 2*sqrt(abs(ub[i] * p[label])) + p[label]
