@@ -1,0 +1,111 @@
+---
+title: "Knor Benchmark"
+output:
+  pdf_document: default
+  html_notebook: default
+---
+# Benchmarking Results From Knor package
+
+
+## Load Data
+```{r}
+# Load libraries
+library(knor)
+```
+
+```{r}
+X_1m = as.matrix(read.csv("data_1m.csv", header = FALSE))
+```
+
+```{r}
+X_100k = as.matrix(read.csv("data_100k.csv", header = FALSE))
+```
+
+
+```{r}
+X_10k = as.matrix(read.csv("data_10k.csv", header = FALSE))
+```
+
+
+```{r}
+X_1k = as.matrix(read.csv("data_1k.csv", header = FALSE))
+```
+
+
+
+## Elbow Method Speed Test
+```{r}
+# Just a convenient function to test execution speed of the 'Elbow method'
+test_multicore_speed <- function(x){
+    
+  rng <- 2:10
+  iters <-  rng * 0
+    
+  for (i in rng) {
+    m <- knor::Kmeans(data = x, centers = i,
+                      iter.max = 1000, nthread = -1, 
+                      init = "kmeanspp",
+                      tolerance = 1e-06,
+                      dist.type = "eucl")
+    iters[i] = m$iters
+  }
+    
+  return(iters)
+}
+```
+
+
+
+
+
+
+
+```{r}
+check_run_time_speed <- function(x){
+  # Replicate the number samples to get a mean time
+  time.taken <- c(1:7)*0
+  
+  for (i in 1:7) {
+    start.time <- Sys.time()
+    
+    test_multicore_speed(x)
+    
+    end.time <- Sys.time()
+    
+    time.taken[i] <- (as.numeric(end.time) - as.numeric(start.time))
+    
+  }
+  return(summary(time.taken))
+}
+```
+
+
+
+## Check Speed For Each Sample
+
+```{r}
+check_run_time_speed(X_1m)
+```
+
+
+```{r}
+check_run_time_speed(X_100k)
+```
+
+
+```{r}
+check_run_time_speed(X_10k)
+```
+
+
+```{r}
+check_run_time_speed(X_1k)
+```
+
+
+
+
+
+
+
+

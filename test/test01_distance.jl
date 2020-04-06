@@ -1,5 +1,5 @@
 module TestDistance
-using ParallelKMeans: colwise!, SingleThread, MultiThread
+using ParallelKMeans: colwise!
 using Test
 
 @testset "naive singlethread colwise" begin
@@ -7,7 +7,7 @@ using Test
     y = [1.0, 2.0]
     r = Vector{Float64}(undef, 3)
 
-    colwise!(r, X, y)
+    colwise!(r, X, y, 1)
     @test all(r .≈ [0.0, 13.0, 25.0])
 end
 
@@ -16,7 +16,7 @@ end
     y = [1.0, 2.0]
     r = Vector{Float64}(undef, 3)
 
-    colwise!(r, X, y, MultiThread())
+    colwise!(r, X, y, 2)
     @test all(r .≈ [0.0, 13.0, 25.0])
 end
 
