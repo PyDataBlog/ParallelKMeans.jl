@@ -1,6 +1,7 @@
 # TODO 1: a using MLJModelInterface or import MLJModelInterface statement
 using MLJModelInterface
 using ParallelKMeans
+using Distances
 
 
 ####
@@ -16,7 +17,7 @@ using ParallelKMeans
     max_iters::Int                          = 300::(_ > 0)
     #transpose_type::String                  = "permute"::(_ in ("permute", "transpose"))
     threads::Int                            = Threads.nthreads()::(_ > 0)
-    verbosity::Int                          = 0::(_ in (0, 1))
+    verbosity::Int                          = 0::(_ in (0, 1))  # Temp fix. Do we need to follow mlj verbosity style?
     init = nothing
 end
 
@@ -32,11 +33,13 @@ const ParallelKMeans_Desc = "Parallel & lightning fast implementation of all var
 ####
 """
     TODO 3.1: Docs
+
+    See also the [package documentation](https://pydatablog.github.io/ParallelKMeans.jl/stable).
 """
 function MLJModelInterface.fit(m::ParaKMeans, verbosity::Int, X)
     # fit the specified struct as a ParaKMeans model
 
-    # assumes user supplied table with columns as features
+    # convert tabular input data into the matrix model expects. Column assumed as features so input data is permuted
     DMatrix = MLJModelInterface.matrix(X; transpose=true)
     
     # fit model and get results
@@ -53,7 +56,9 @@ function MLJModelInterface.fit(m::ParaKMeans, verbosity::Int, X)
     end
 
     cache = nothing
-    report = NamedTuple{}()
+    report = (cluster_centers=fitresult.centers, iterations=fitresult.iterations, 
+              converged=fitresult.converged, totalcost=fitresult.totalcost,
+              labels=fitresult.assignments)
 
     return (fitresult, cache, report)
 end
@@ -64,12 +69,15 @@ end
 """
 function MLJModelInterface.fitted_params(model::KMeansModel, fitresult)
     # extract what's relevant from `fitresult`
-    centres = fitresult.centres
-    converged = fitresult.converged
-    iters = fitresult.iterations
-    totalcost = fitresult.totalcost
+    results, _, _ = fitresult  # unpack fitresult
+    centers = results.centers
+    converged = results.converged
+    iters = results.iterations
+    totalcost = results.totalcost
+
     # then return as a NamedTuple
-    return (centres = centres, totalcost = totalcost, iterations = iters, converged = converged)
+    return (cluster_centers = centers, totalcost = totalcost,
+            iterations = iters, converged = converged)
 end
 
 
@@ -79,8 +87,17 @@ end
 """
     TODO 3.3: Docs
 """
-function MLJModelInterface.predict(m::ParaKMeans, fitresult, Xnew)
-    # ...
+function MLJModelInterface.transform(m::ParaKMeans, fitresult, Xnew)
+    # make predictions/assignments using the learned centroids
+    results = fitresult[1]
+    DMatrix = MLJModelInterface.matrix(Xnew, transpose=true)
+
+    # TODO 3.3.1: Warn users if fitresult is from a `non-converged` fit.
+    # use centroid matrix to assign clusters for new data
+    centroids = results.centers
+    distances = pairwise(SqEuclidean(), DMatrix, centroids; dims=2)
+    preds = argmin.(eachrow(distances))
+    return MLJModelInterface.table(reshape(preds, :, 1), prototype=Xnew)
 end
 
 
