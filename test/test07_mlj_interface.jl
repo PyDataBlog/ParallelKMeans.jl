@@ -1,6 +1,5 @@
 module TestMLJInterface
 
-using MLJModelInterface
 using ParallelKMeans
 using Random
 using Test
@@ -9,7 +8,7 @@ using MLJBase
 
 
 @testset "Test struct construction" begin
-    model = ParallelKMeans.KMeans()
+    model = KMeans()
 
     @test model.algo            == :Lloyd
     @test model.init            == nothing
@@ -26,7 +25,7 @@ end
 @testset "Test model fitting verbosity" begin
     Random.seed!(2020)
     X = table([1 2; 1 4; 1 0; 10 2; 10 4; 10 0])
-    model = ParallelKMeans.KMeans(k=2, max_iters=1, verbosity=1)
+    model = KMeans(k=2, max_iters=1, verbosity=1)
     results = @capture_out fit(model, X)
 
     @test results == "Iteration 1: Jclust = 28.0\n"
@@ -36,7 +35,7 @@ end
 @testset "Test Lloyd model fitting" begin
     Random.seed!(2020)
     X = table([1 2; 1 4; 1 0; 10 2; 10 4; 10 0])
-    model = ParallelKMeans.KMeans(k=2)
+    model = KMeans(k=2)
     results = fit(model, X)
 
     @test results[2]             == nothing
@@ -48,7 +47,7 @@ end
 @testset "Test Hamerly model fitting" begin
     Random.seed!(2020)
     X = table([1 2; 1 4; 1 0; 10 2; 10 4; 10 0])
-    model = ParallelKMeans.KMeans(algo=:Hamerly, k=2)
+    model = KMeans(algo=:Hamerly, k=2)
     results = fit(model, X)
 
     @test results[2]             == nothing
@@ -60,7 +59,7 @@ end
 @testset "Test Lloyd fitted params" begin
     Random.seed!(2020)
     X = table([1 2; 1 4; 1 0; 10 2; 10 4; 10 0])
-    model = ParallelKMeans.KMeans(k=2)
+    model = KMeans(k=2)
     results = fit(model, X)
 
     params = fitted_params(model, results)
@@ -72,7 +71,7 @@ end
 @testset "Test Hamerly fitted params" begin
     Random.seed!(2020)
     X = table([1 2; 1 4; 1 0; 10 2; 10 4; 10 0])
-    model = ParallelKMeans.KMeans(algo=:Hamerly, k=2)
+    model = KMeans(algo=:Hamerly, k=2)
     results = fit(model, X)
 
     params = fitted_params(model, results)
@@ -87,7 +86,7 @@ end
     X_test = table([10 1])
 
     # Train model using training data X
-    model = ParallelKMeans.KMeans(k=2)
+    model = KMeans(k=2)
     results = fit(model, X)
 
     # Use trained model to cluster new data X_test
@@ -102,7 +101,7 @@ end
     X_test = table([10 1])
 
     # Train model using training data X
-    model = ParallelKMeans.KMeans(algo=:Hamerly, k=2)
+    model = KMeans(algo=:Hamerly, k=2)
     results = fit(model, X)
 
     # Use trained model to cluster new data X_test
@@ -110,4 +109,4 @@ end
     @test preds[:x1][1] == 2
 end
 
-end # end module
+end # module

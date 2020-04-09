@@ -1,7 +1,4 @@
 # TODO 1: a using MLJModelInterface or import MLJModelInterface statement
-using MLJModelInterface
-import Distances
-
 
 ####
 #### MODEL DEFINITION

@@ -1,7 +1,9 @@
 module ParallelKMeans
 
 using StatsBase
+using MLJModelInterface
 import Base.Threads: @spawn
+import Distances
 
 include("seeding.jl")
 include("kmeans.jl")
