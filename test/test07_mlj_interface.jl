@@ -26,7 +26,7 @@ end
 @testset "Test model fitting" begin
     X = table([1 2; 1 4; 1 0; 10 2; 10 4; 10 0])
     model = ParallelKMeans.KMeans(k=2)
-    results = fit(model, 0, X)
+    results = fit(model, X)
 
     @test results[2]             == nothing
     @test results[end].converged == true
@@ -37,7 +37,7 @@ end
 @testset "Test fitted params" begin
     X = table([1 2; 1 4; 1 0; 10 2; 10 4; 10 0])
     model = ParallelKMeans.KMeans(k=2)
-    results = fit(model, 0, X)
+    results = fit(model, X)
 
     params = fitted_params(model, results)
     @test params.converged == true
@@ -53,7 +53,7 @@ end
     
     # Train model using training data X
     model = ParallelKMeans.KMeans(k=2)
-    results = fit(model, 0, X)
+    results = fit(model, X)
 
     # Use trained model to cluster new data X_test
     preds = transform(model, results, X_test)

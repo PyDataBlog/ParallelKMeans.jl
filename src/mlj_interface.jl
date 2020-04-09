@@ -1,6 +1,5 @@
 # TODO 1: a using MLJModelInterface or import MLJModelInterface statement
 using MLJModelInterface
-using ParallelKMeans
 import Distances
 
 
@@ -23,9 +22,12 @@ end
 
 
 # Expose all instances of user specified structs and package artifcats.
-#const KMeansModel = Union{KMeans}
 const ParallelKMeans_Desc = "Parallel & lightning fast implementation of all variants of the KMeans clustering algorithm in native Julia."
 
+# availalbe variants for reference
+const MLJDICT = Dict(:Lloyd => Lloyd(),
+                     :Hamerly => Hamerly(),
+                    :LightElkan => LightElkan())  
 
 # TODO 3: implementation of fit, predict, and fitted_params of the model
 ####
@@ -36,7 +38,7 @@ const ParallelKMeans_Desc = "Parallel & lightning fast implementation of all var
 
     See also the [package documentation](https://pydatablog.github.io/ParallelKMeans.jl/stable).
 """
-function MLJModelInterface.fit(m::KMeans, verbosity::Int, X)
+function MLJModelInterface.fit(m::KMeans, X)
     # fit the specified struct as a ParaKMeans model
 
     # convert tabular input data into the matrix model expects. Column assumed as features so input data is permuted
@@ -49,10 +51,7 @@ function MLJModelInterface.fit(m::KMeans, verbosity::Int, X)
     end
     
     # lookup available algorithms
-    algos = Dict(:Lloyd => Lloyd(),
-                 :Hamerly => Hamerly(),
-                 :LightElkan => LightElkan())
-    algo = algos[m.algo]  # select algo
+    algo = MLJDICT[m.algo]  # select algo
 
     # fit model and get results
     verbose = m.verbosity != 0
