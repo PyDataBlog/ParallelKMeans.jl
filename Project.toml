@@ -4,16 +4,19 @@ authors = ["Bernard Brenyah", "Andrey Oskin"]
 version = "0.1.0"
 
 [deps]
+Distances = "b4f34e82-e78d-54a5-968a-f98e89d6e8f7"
+MLJModelInterface = "e80e1ace-859a-464e-9ed9-23947d8ae3ea"
 StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
 
 [compat]
-StatsBase = "0.32"
-julia = "1.3"
+StatsBase = "0.32, 0.33"
+julia = "1.3, 1.4"
 
 [extras]
+MLJBase = "a7f614a8-145f-11e9-1d2a-a57a1082229d"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
-Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 Suppressor = "fd094767-a336-5f1f-9728-57cf17d0bbfb"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["Test", "Random", "Suppressor"]
+test = ["Test", "Random", "Suppressor", "MLJBase"]

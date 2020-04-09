@@ -173,7 +173,7 @@ end
 
 
 """
-    Kmeans!(alg::AbstractKMeansAlg, containers, design_matrix, k; n_threads = nthreads(), k_init="k-means++", max_iters=300, tol=1e-6, verbose=true)
+    Kmeans!(alg::AbstractKMeansAlg, containers, design_matrix, k; n_threads = nthreads(), k_init="k-means++", max_iters=300, tol=1e-6, verbose=false)
 
 Mutable version of `kmeans` function. Definition of arguments and results can be
 found in `kmeans`.
