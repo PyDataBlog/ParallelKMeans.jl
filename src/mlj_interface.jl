@@ -1,21 +1,21 @@
 # TODO 1: a using MLJModelInterface or import MLJModelInterface statement
 using MLJModelInterface
 using ParallelKMeans
-using Distances
+import Distances
 
 
 ####
 #### MODEL DEFINITION
 ####
 # TODO 2: MLJ-compatible model types and constructors
-@mlj_model mutable struct ParaKMeans <: MLJModelInterface.Unsupervised
+@mlj_model mutable struct KMeans <: MLJModelInterface.Unsupervised
     # Hyperparameters of the model
-    algo::ParallelKMeans.AbstractKMeansAlg  = Lloyd()::(_ in (Lloyd(), Hamerly(), LightElkan()))
+    algo::Symbol                            = :Lloyd::(_ in (:Lloyd, :Hamerly, :LightElkan))
     k_init::String                          = "k-means++"::(_ in ("k-means++", String)) # allow user seeding?
     k::Int                                  = 3::(_ > 0)
     tol::Float64                            = 1e-6::(_ < 1)
     max_iters::Int                          = 300::(_ > 0)
-    #transpose_type::String                  = "permute"::(_ in ("permute", "transpose"))
+    copy::Bool                              = true::(_ in (true, false))
     threads::Int                            = Threads.nthreads()::(_ > 0)
     verbosity::Int                          = 0::(_ in (0, 1))  # Temp fix. Do we need to follow mlj verbosity style?
     init = nothing
@@ -23,7 +23,7 @@ end
 
 
 # Expose all instances of user specified structs and package artifcats.
-const KMeansModel = Union{ParaKMeans}
+const KMeansModel = Union{KMeans}
 const ParallelKMeans_Desc = "Parallel & lightning fast implementation of all variants of the KMeans clustering algorithm in native Julia."
 
 
@@ -36,25 +36,30 @@ const ParallelKMeans_Desc = "Parallel & lightning fast implementation of all var
 
     See also the [package documentation](https://pydatablog.github.io/ParallelKMeans.jl/stable).
 """
-function MLJModelInterface.fit(m::ParaKMeans, verbosity::Int, X)
+function MLJModelInterface.fit(m::KMeans, verbosity::Int, X)
     # fit the specified struct as a ParaKMeans model
 
     # convert tabular input data into the matrix model expects. Column assumed as features so input data is permuted
-    DMatrix = MLJModelInterface.matrix(X; transpose=true)
-    
-    # fit model and get results
-    if m.verbosity > 0
-		fitresult = ParallelKMeans.kmeans(m.algo, DMatrix, m.k;
-	                                      n_threads = m.threads, k_init=m.k_init,
-	                                      max_iters=m.max_iters, tol=m.tol, init=m.init,
-										  verbose=true)
+    if !m.copy
+        # transpose input table without copying and pass to model
+        DMatrix = convert(Array{Float64, 2}, X)'
     else
-		fitresult = ParallelKMeans.kmeans(m.algo, DMatrix, m.k;
-	                                      n_threads = m.threads, k_init=m.k_init,
-	                                      max_iters=m.max_iters, tol=m.tol, init=m.init,
-										  verbose=false)
+        # tranposes input table as a column major matrix after making a copy of the data
+        DMatrix = MLJModelInterface.matrix(X; transpose=true)
     end
+    
+    # lookup available algorithms
+    algos = Dict(:Lloyd => Lloyd(),
+                 :Hamerly => Hamerly(),
+                 :LightElkan => LightElkan())
+    algo = algos[m.algo]  # select algo
 
+    # fit model and get results
+    verbose = m.verbosity != 0
+    fitresult = ParallelKMeans.kmeans(algo, DMatrix, m.k;
+                                      n_threads = m.threads, k_init=m.k_init,
+                                      max_iters=m.max_iters, tol=m.tol, init=m.init,
+                                      verbose=verbose)
     cache = nothing
     report = (cluster_centers=fitresult.centers, iterations=fitresult.iterations, 
               converged=fitresult.converged, totalcost=fitresult.totalcost,
@@ -87,7 +92,7 @@ end
 """
     TODO 3.3: Docs
 """
-function MLJModelInterface.transform(m::ParaKMeans, fitresult, Xnew)
+function MLJModelInterface.transform(m::KMeans, fitresult, Xnew)
     # make predictions/assignments using the learned centroids
     results = fitresult[1]
     DMatrix = MLJModelInterface.matrix(Xnew, transpose=true)
@@ -95,7 +100,7 @@ function MLJModelInterface.transform(m::ParaKMeans, fitresult, Xnew)
     # TODO 3.3.1: Warn users if fitresult is from a `non-converged` fit.
     # use centroid matrix to assign clusters for new data
     centroids = results.centers
-    distances = pairwise(SqEuclidean(), DMatrix, centroids; dims=2)
+    distances = Distances.pairwise(Distances.SqEuclidean(), DMatrix, centroids; dims=2)
     preds = argmin.(eachrow(distances))
     return MLJModelInterface.table(reshape(preds, :, 1), prototype=Xnew)
 end
@@ -117,11 +122,11 @@ metadata_pkg.(KMeansModel,
 
 
 # Metadata for ParaKMeans model interface
-metadata_model(ParaKMeans,
-    input   = MLJModelInterface.Table(MLJModelInterface.Continuous),  # what input data is supported?           # for a supervised model, what target?
+metadata_model(KMeans,
+    input   = MLJModelInterface.Table(MLJModelInterface.Continuous),  # what input data is supported?
     output  = MLJModelInterface.Table(MLJModelInterface.Count),  # for an unsupervised, what output?
-    weights = false,                                             # does the model support sample weights?
+    weights = false,                                             
     descr   = ParallelKMeans_Desc,
-	path	= "ParallelKMeans.src.mlj_interface.ParaKMeans"
+	path	= "ParallelKMeans.src.mlj_interface.KMeans"
 	#path    = "YourPackage.SubModuleContainingModelStructDefinition.YourModel1"
     )
