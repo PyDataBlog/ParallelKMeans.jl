@@ -15,7 +15,7 @@ import Distances
     k::Int                                  = 3::(_ > 0)
     tol::Float64                            = 1e-6::(_ < 1)
     max_iters::Int                          = 300::(_ > 0)
-    copy::Bool                              = true::(_ in (true, false))
+    copy::Bool                              = true
     threads::Int                            = Threads.nthreads()::(_ > 0)
     verbosity::Int                          = 0::(_ in (0, 1))  # Temp fix. Do we need to follow mlj verbosity style?
     init = nothing
@@ -23,7 +23,7 @@ end
 
 
 # Expose all instances of user specified structs and package artifcats.
-const KMeansModel = Union{KMeans}
+#const KMeansModel = Union{KMeans}
 const ParallelKMeans_Desc = "Parallel & lightning fast implementation of all variants of the KMeans clustering algorithm in native Julia."
 
 
@@ -72,7 +72,7 @@ end
 """
     TODO 3.2: Docs
 """
-function MLJModelInterface.fitted_params(model::KMeansModel, fitresult)
+function MLJModelInterface.fitted_params(model::KMeans, fitresult)
     # extract what's relevant from `fitresult`
     results, _, _ = fitresult  # unpack fitresult
     centers = results.centers
@@ -111,7 +111,7 @@ end
 ####
 
 # TODO 4: metadata for the package and for each of the model interfaces
-metadata_pkg.(KMeansModel,
+metadata_pkg.(KMeans,
     name = "ParallelKMeans",
     uuid = "42b8e9d4-006b-409a-8472-7f34b3fb58af", # see your Project.toml
     url  = "https://github.com/PyDataBlog/ParallelKMeans.jl",  # URL to your package repo
