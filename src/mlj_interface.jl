@@ -27,7 +27,7 @@ const ParallelKMeans_Desc = "Parallel & lightning fast implementation of all var
 # availalbe variants for reference
 const MLJDICT = Dict(:Lloyd => Lloyd(),
                      :Hamerly => Hamerly(),
-                    :LightElkan => LightElkan())  
+                     :LightElkan => LightElkan())
 
 # TODO 3: implementation of fit, predict, and fitted_params of the model
 ####
@@ -49,7 +49,7 @@ function MLJModelInterface.fit(m::KMeans, X)
         # tranposes input table as a column major matrix after making a copy of the data
         DMatrix = MLJModelInterface.matrix(X; transpose=true)
     end
-    
+
     # lookup available algorithms
     algo = MLJDICT[m.algo]  # select algo
 
@@ -60,7 +60,7 @@ function MLJModelInterface.fit(m::KMeans, X)
                                       max_iters=m.max_iters, tol=m.tol, init=m.init,
                                       verbose=verbose)
     cache = nothing
-    report = (cluster_centers=fitresult.centers, iterations=fitresult.iterations, 
+    report = (cluster_centers=fitresult.centers, iterations=fitresult.iterations,
               converged=fitresult.converged, totalcost=fitresult.totalcost,
               labels=fitresult.assignments)
 
@@ -122,10 +122,8 @@ metadata_pkg.(KMeans,
 
 # Metadata for ParaKMeans model interface
 metadata_model(KMeans,
-    input   = MLJModelInterface.Table(MLJModelInterface.Continuous),  # what input data is supported?
-    output  = MLJModelInterface.Table(MLJModelInterface.Count),  # for an unsupervised, what output?
-    weights = false,                                             
+    input   = MLJModelInterface.Table(MLJModelInterface.Continuous),
+    output  = MLJModelInterface.Table(MLJModelInterface.Count),
+    weights = false,
     descr   = ParallelKMeans_Desc,
-	path	= "ParallelKMeans.src.mlj_interface.KMeans"
-	#path    = "YourPackage.SubModuleContainingModelStructDefinition.YourModel1"
-    )
+	path	= "ParallelKMeans.src.mlj_interface.KMeans")
