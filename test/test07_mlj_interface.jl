@@ -23,6 +23,17 @@ using MLJBase
 end
 
 
+@testset "Test bad struct warings" begin
+    @test_logs (:warn, "Unsuppored algorithm supplied. Defauting to KMeans++ seeding algorithm.") ParallelKMeans.KMeans(algo=:Fake)
+    @test_logs (:warn, "Only `k-means++` or random seeding algorithms are supported. Defaulting to random seeding.") ParallelKMeans.KMeans(k_init="abc")
+    @test_logs (:warn, "Number of clusters must be greater than 0. Defaulting to 3 clusters.") ParallelKMeans.KMeans(k=0)
+    @test_logs (:warn, "Tolerance level must be less than 1. Defaulting to tol of 1e-6.") ParallelKMeans.KMeans(tol=2)
+    @test_logs (:warn, "Number of permitted iterations must be greater than 0. Defaulting to 300 iterations.") ParallelKMeans.KMeans(max_iters=0)
+    @test_logs (:warn, "Number of threads must be at least 1. Defaulting to all threads available.") ParallelKMeans.KMeans(threads=0)
+    @test_logs (:warn, "Verbosity must be either 0 (no info) or 1 (info requested). Defaulting to 0.") ParallelKMeans.KMeans(verbosity=100)
+end
+
+
 @testset "Test model fitting verbosity" begin
     Random.seed!(2020)
     X = table([1 2; 1 4; 1 0; 10 2; 10 4; 10 0])

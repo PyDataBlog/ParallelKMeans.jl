@@ -38,18 +38,34 @@ end
 
 function MLJModelInterface.clean!(m::KMeans)
     warning = ""
+
     if !(m.algo ∈ keys(MLJDICT))
-        warning *= "Unsuppored algorithm supplied. Please check documentation for supported Kmeans algorithms."
+        warning *= "Unsuppored algorithm supplied. Defauting to KMeans++ seeding algorithm."
+        m.algo = :Lloyd
+
+    elseif m.k_init != "k-means++"
+        warning *= "Only `k-means++` or random seeding algorithms are supported. Defaulting to random seeding."
+        m.k_init = "random"
+
     elseif m.k < 1
-        warning *= "Number of clusters must be greater than 0."
+        warning *= "Number of clusters must be greater than 0. Defaulting to 3 clusters."
+        m.k = 3
+
     elseif !(m.tol < 1.0)
-        warning *= "Tolerance level must be less than 1."
+        warning *= "Tolerance level must be less than 1. Defaulting to tol of 1e-6."
+        m.tol = 1e-6
+
     elseif !(m.max_iters > 0)
-        warning *= "Number of permitted iterations must be greater than 0."
+        warning *= "Number of permitted iterations must be greater than 0. Defaulting to 300 iterations."
+        m.max_iters = 300
+
     elseif !(m.threads > 0)
-        warning *= "Number of threads must be at least 1."
+        warning *= "Number of threads must be at least 1. Defaulting to all threads available."
+        m.threads = Threads.nthreads()
+
     elseif !(m.verbosity ∈ (0, 1))
-        warning *= "Verbosity must be either 0 (no info) or 1 (info requested)"
+        warning *= "Verbosity must be either 0 (no info) or 1 (info requested). Defaulting to 0."
+        m.verbosity = 0
     end
     return warning
 end
@@ -61,12 +77,11 @@ end
 ####
 """
     TODO 3.1: Docs
+    # fit the specified struct as a ParaKMeans model
 
     See also the [package documentation](https://pydatablog.github.io/ParallelKMeans.jl/stable).
 """
 function MLJModelInterface.fit(m::KMeans, X)
-    # fit the specified struct as a ParaKMeans model
-
     # convert tabular input data into the matrix model expects. Column assumed as features so input data is permuted
     if !m.copy
         # transpose input table without copying and pass to model
@@ -152,4 +167,4 @@ metadata_model(KMeans,
     output  = MLJModelInterface.Table(MLJModelInterface.Count),
     weights = false,
     descr   = ParallelKMeans_Desc,
-	path	= "ParallelKMeans.src.mlj_interface.KMeans")
+	path	= "ParallelKMeans.KMeans")
