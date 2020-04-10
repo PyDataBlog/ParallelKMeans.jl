@@ -1,6 +1,7 @@
 module TestMLJInterface
 
 using ParallelKMeans
+using ParallelKMeans: KMeans
 using Random
 using Test
 using Suppressor
