@@ -1,23 +1,4 @@
 # TODO 1: a using MLJModelInterface or import MLJModelInterface statement
-
-####
-#### MODEL DEFINITION
-####
-# TODO 2: MLJ-compatible model types and constructors
-@mlj_model mutable struct KMeans <: MLJModelInterface.Unsupervised
-    # Hyperparameters of the model
-    algo::Symbol                            = :Lloyd::(_ in (:Lloyd, :Hamerly, :LightElkan))
-    k_init::String                          = "k-means++"::(_ in ("k-means++", String)) # allow user seeding?
-    k::Int                                  = 3::(_ > 0)
-    tol::Float64                            = 1e-6::(_ < 1)
-    max_iters::Int                          = 300::(_ > 0)
-    copy::Bool                              = true
-    threads::Int                            = Threads.nthreads()::(_ > 0)
-    verbosity::Int                          = 0::(_ in (0, 1))  # Temp fix. Do we need to follow mlj verbosity style?
-    init = nothing
-end
-
-
 # Expose all instances of user specified structs and package artifcats.
 const ParallelKMeans_Desc = "Parallel & lightning fast implementation of all variants of the KMeans clustering algorithm in native Julia."
 
@@ -26,18 +7,81 @@ const MLJDICT = Dict(:Lloyd => Lloyd(),
                      :Hamerly => Hamerly(),
                      :LightElkan => LightElkan())
 
+####
+#### MODEL DEFINITION
+####
+# TODO 2: MLJ-compatible model types and constructors
+
+mutable struct KMeans <: MLJModelInterface.Unsupervised
+    algo::Symbol
+    k_init::String
+    k::Int
+    tol::Float64
+    max_iters::Int
+    copy::Bool
+    threads::Int
+    verbosity::Int
+    init
+end
+
+
+function KMeans(; algo=:Lloyd, k_init="k-means++",
+                k=3, tol=1e-6, max_iters=300, copy=true,
+                threads=Threads.nthreads(), verbosity=0, init=nothing)
+
+    model   = KMeans(algo, k_init, k, tol, max_iters, copy, threads, verbosity, init)
+    message = MLJModelInterface.clean!(model)
+    isempty(message) || @warn message
+    return model
+end
+
+
+function MLJModelInterface.clean!(m::KMeans)
+    warning = ""
+
+    if !(m.algo ∈ keys(MLJDICT))
+        warning *= "Unsuppored algorithm supplied. Defauting to KMeans++ seeding algorithm."
+        m.algo = :Lloyd
+
+    elseif m.k_init != "k-means++"
+        warning *= "Only `k-means++` or random seeding algorithms are supported. Defaulting to random seeding."
+        m.k_init = "random"
+
+    elseif m.k < 1
+        warning *= "Number of clusters must be greater than 0. Defaulting to 3 clusters."
+        m.k = 3
+
+    elseif !(m.tol < 1.0)
+        warning *= "Tolerance level must be less than 1. Defaulting to tol of 1e-6."
+        m.tol = 1e-6
+
+    elseif !(m.max_iters > 0)
+        warning *= "Number of permitted iterations must be greater than 0. Defaulting to 300 iterations."
+        m.max_iters = 300
+
+    elseif !(m.threads > 0)
+        warning *= "Number of threads must be at least 1. Defaulting to all threads available."
+        m.threads = Threads.nthreads()
+
+    elseif !(m.verbosity ∈ (0, 1))
+        warning *= "Verbosity must be either 0 (no info) or 1 (info requested). Defaulting to 0."
+        m.verbosity = 0
+    end
+    return warning
+end
+
+
 # TODO 3: implementation of fit, predict, and fitted_params of the model
 ####
 #### FIT FUNCTION
 ####
 """
     TODO 3.1: Docs
+    # fit the specified struct as a ParaKMeans model
 
     See also the [package documentation](https://pydatablog.github.io/ParallelKMeans.jl/stable).
 """
 function MLJModelInterface.fit(m::KMeans, X)
-    # fit the specified struct as a ParaKMeans model
-
     # convert tabular input data into the matrix model expects. Column assumed as features so input data is permuted
     if !m.copy
         # transpose input table without copying and pass to model
@@ -123,4 +167,4 @@ metadata_model(KMeans,
     output  = MLJModelInterface.Table(MLJModelInterface.Count),
     weights = false,
     descr   = ParallelKMeans_Desc,
-	path	= "ParallelKMeans.src.mlj_interface.KMeans")
+	path	= "ParallelKMeans.KMeans")
