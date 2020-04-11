@@ -13,7 +13,7 @@ Say hello to `ParallelKMeans`!
 
 This package aims to utilize the speed of Julia and parallelization (both CPU & GPU) to offer an extremely fast implementation of the K-Means clustering algorithm and its variations via a friendly interface for practioners.
 
-In short, we hope this package will eventually mature as the "one stop" shop for everything KMeans on both CPUs and GPUs.
+In short, we hope this package will eventually mature as the "one stop" shop for everything K-Means on both CPUs and GPUs.
 
 ## K-Means Algorithm Implementation Notes
 
@@ -51,19 +51,20 @@ git checkout experimental
 ## Features
 
 - Lightening fast implementation of Kmeans clustering algorithm even on a single thread in native Julia.
-- Support for multi-theading implementation of Kmeans clustering algorithm.
+- Support for multi-theading implementation of K-Means clustering algorithm.
 - 'Kmeans++' initialization for faster and better convergence.
-- Modified version of Elkan's Triangle inequality to speed up K-Means algorithm.
+- Implementation of available classic and contemporary variants of the K-Means algorithm.
 
 ## Pending Features
 
 - [X] Implementation of [Hamerly implementation](https://www.researchgate.net/publication/220906984_Making_k-means_Even_Faster).
+- [X] Interface for inclusion in Alan Turing Institute's [MLJModels](https://github.com/alan-turing-institute/MLJModels.jl#who-is-this-repo-for).
 - [ ] Full Implementation of Triangle inequality based on [Elkan - 2003 Using the Triangle Inequality to Accelerate K-Means"](https://www.aaai.org/Papers/ICML/2003/ICML03-022.pdf).
 - [ ] Implementation of [Geometric methods to accelerate k-means algorithm](http://cs.baylor.edu/~hamerly/papers/sdm2016_rysavy_hamerly.pdf).
-- [ ] Support for DataFrame inputs.
+- [ ] Native support for tabular data inputs outside of MLJModels' interface.
 - [ ] Refactoring and finalizaiton of API desgin.
 - [ ] GPU support.
-- [ ] Even faster Kmeans implementation based on current literature.
+- [ ] Even faster Kmeans implementation based on recent literature.
 - [ ] Optimization of code base.
 - [ ] Improved Documentation
 - [ ] More benchmark tests
@@ -175,6 +176,7 @@ ________________________________________________________________________________
 ## Release History
 
 - 0.1.0 Initial release
+- 0.1.1 Added interface for MLJ
 
 ## Contributing
 
@@ -182,7 +184,7 @@ Ultimately, we see this package as potentially the one stop shop for everything 
 
 Detailed contribution guidelines will be added in upcoming releases.
 
-<!--- Insert Contribution Guidelines Below --->
+<!--- TODO: Contribution Guidelines --->
 
 ```@index
 ```
