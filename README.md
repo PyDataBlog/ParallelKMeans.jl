@@ -10,6 +10,7 @@ ________________________________________________________________________________
 _________________________________________________________________________________________________________
 
 ## Table Of Content
+
 1. [Documentation](#Documentation)
 2. [Installation](#Installation)
 3. [Features](#Features)
@@ -18,6 +19,7 @@ ________________________________________________________________________________
 _________________________________________________________________________________________________________
 
 ### Documentation
+
 - Stable Documentation: [![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://PyDataBlog.github.io/ParallelKMeans.jl/stable)
 
 - Experimental Documentation: [![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://PyDataBlog.github.io/ParallelKMeans.jl/dev)
@@ -25,6 +27,7 @@ ________________________________________________________________________________
 _________________________________________________________________________________________________________
 
 ### Installation
+
 You can grab the latest stable version of this package by simply running in Julia.
 Don't forget to Julia's package manager with `]`
 
@@ -39,9 +42,11 @@ pkg> dev git@github.com:PyDataBlog/ParallelKMeans.jl.git
 ```
 
 Don't forget to checkout the experimental branch and you are good to go with bleeding edge features and breaks!
+
 ```bash
 git checkout experimental
 ```
+
 _________________________________________________________________________________________________________
 
 ### Features

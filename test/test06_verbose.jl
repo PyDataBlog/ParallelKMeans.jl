@@ -13,7 +13,6 @@ using Suppressor
     # Capture output and compare
     r = @capture_out kmeans(Lloyd(), X, 3; n_threads=1, max_iters=1, verbose=true)
     @test r == "Iteration 1: Jclust = 46.534795844478815\n"
-    
 end
 
 end # module

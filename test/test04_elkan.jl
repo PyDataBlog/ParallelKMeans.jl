@@ -1,7 +1,7 @@
 module TestElkan
 
 using ParallelKMeans
-using ParallelKMeans: LightElkan, update_containers!
+using ParallelKMeans: update_containers!
 using Test
 using Random
 
