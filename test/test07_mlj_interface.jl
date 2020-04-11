@@ -121,7 +121,7 @@ end
     @test preds[:x1][1] == 2
 end
 
-@testset "Testing " begin
+@testset "Testing non convergence warning" begin
     Random.seed!(2020)
     X = table([1 2; 1 4; 1 0; 10 2; 10 4; 10 0])
     X_test = table([10 1])
