@@ -93,6 +93,7 @@ Allocationless calculation of square eucledean distance between vectors X1[:, i1
 """
 function distance(X1, X2, i1, i2)
     d = 0.0
+    # TODO: break of the loop if d is larger than threshold (known minimum disatnce)
     @inbounds for i in axes(X1, 1)
         d += (X1[i, i1] - X2[i, i2])^2
     end

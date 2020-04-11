@@ -1,7 +1,7 @@
 module TestHamerly
 
 using ParallelKMeans
-using ParallelKMeans: chunk_initialize!, double_argmax
+using ParallelKMeans: chunk_initialize, double_argmax
 using Test
 using Random
 
@@ -11,7 +11,7 @@ using Random
     nrow, ncol = size(X)
     containers = ParallelKMeans.create_containers(Hamerly(), 3, nrow, ncol, 1)
 
-    ParallelKMeans.chunk_initialize!(Hamerly(), containers, centroids, X, 1:ncol, 1)
+    ParallelKMeans.chunk_initialize(Hamerly(), containers, centroids, X, 1:ncol, 1)
     @test containers.lb == [18.0, 20.0, 5.0, 5.0]
     @test containers.ub == [0.0, 2.0, 0.0, 0.0]
 end
