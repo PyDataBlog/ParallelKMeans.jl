@@ -1,6 +1,6 @@
-# TODO 1: a using MLJModelInterface or import MLJModelInterface statement
 # Expose all instances of user specified structs and package artifcats.
-const ParallelKMeans_Desc = "Parallel & lightning fast implementation of all variants of the KMeans clustering algorithm in native Julia."
+const ParallelKMeans_Desc = "Parallel & lightning fast implementation of all available variants of the KMeans clustering algorithm
+                             in native Julia. Compatible with Julia 1.3+"
 
 # availalbe variants for reference
 const MLJDICT = Dict(:Lloyd => Lloyd(),
@@ -10,7 +10,6 @@ const MLJDICT = Dict(:Lloyd => Lloyd(),
 ####
 #### MODEL DEFINITION
 ####
-# TODO 2: MLJ-compatible model types and constructors
 
 mutable struct KMeans <: MLJModelInterface.Unsupervised
     algo::Symbol
@@ -40,7 +39,7 @@ function MLJModelInterface.clean!(m::KMeans)
     warning = ""
 
     if !(m.algo ∈ keys(MLJDICT))
-        warning *= "Unsuppored algorithm supplied. Defauting to KMeans++ seeding algorithm."
+        warning *= "Unsupported KMeans variant, Defauting to KMeans++ seeding algorithm."
         m.algo = :Lloyd
 
     elseif m.k_init != "k-means++"
@@ -71,24 +70,22 @@ function MLJModelInterface.clean!(m::KMeans)
 end
 
 
-# TODO 3: implementation of fit, predict, and fitted_params of the model
 ####
 #### FIT FUNCTION
 ####
 """
-    TODO 3.1: Docs
-    # fit the specified struct as a ParaKMeans model
+    Fit the specified ParaKMeans model constructed by the user.
 
     See also the [package documentation](https://pydatablog.github.io/ParallelKMeans.jl/stable).
 """
 function MLJModelInterface.fit(m::KMeans, X)
     # convert tabular input data into the matrix model expects. Column assumed as features so input data is permuted
     if !m.copy
-        # transpose input table without copying and pass to model
-        DMatrix = convert(Array{Float64, 2}, X)'
+        # permutes dimensions of input table without copying and pass to model
+        DMatrix = convert(Array{Float64, 2}, MLJModelInterface.matrix(X)')
     else
-        # tranposes input table as a column major matrix after making a copy of the data
-        DMatrix = MLJModelInterface.matrix(X; transpose=true)
+        # permutes dimensions of input table as a column major matrix from a copy of the data
+        DMatrix = convert(Array{Float64, 2}, MLJModelInterface.matrix(X, transpose=true))
     end
 
     # lookup available algorithms
@@ -109,9 +106,6 @@ function MLJModelInterface.fit(m::KMeans, X)
 end
 
 
-"""
-    TODO 3.2: Docs
-"""
 function MLJModelInterface.fitted_params(model::KMeans, fitresult)
     # extract what's relevant from `fitresult`
     results, _, _ = fitresult  # unpack fitresult
@@ -129,15 +123,26 @@ end
 ####
 #### PREDICT FUNCTION
 ####
-"""
-    TODO 3.3: Docs
-"""
+
 function MLJModelInterface.transform(m::KMeans, fitresult, Xnew)
     # make predictions/assignments using the learned centroids
-    results = fitresult[1]
-    DMatrix = MLJModelInterface.matrix(Xnew, transpose=true)
 
-    # TODO 3.3.1: Warn users if fitresult is from a `non-converged` fit.
+    if !m.copy
+        # permutes dimensions of input table without copying and pass to model
+        DMatrix = convert(Array{Float64, 2}, MLJModelInterface.matrix(Xnew)')
+    else
+        # permutes dimensions of input table as a column major matrix from a copy of the data
+        DMatrix = convert(Array{Float64, 2}, MLJModelInterface.matrix(Xnew, transpose=true))
+    end
+
+    # TODO: Warn users if fitresult is from a `non-converged` fit?
+    if !fitresult[end].converged
+        @warn "Failed to converged. Using last assignments to make transformations."
+    end
+
+    # results from fitted model
+    results = fitresult[1]
+
     # use centroid matrix to assign clusters for new data
     centroids = results.centers
     distances = Distances.pairwise(Distances.SqEuclidean(), DMatrix, centroids; dims=2)
@@ -153,12 +158,11 @@ end
 # TODO 4: metadata for the package and for each of the model interfaces
 metadata_pkg.(KMeans,
     name = "ParallelKMeans",
-    uuid = "42b8e9d4-006b-409a-8472-7f34b3fb58af", # see your Project.toml
-    url  = "https://github.com/PyDataBlog/ParallelKMeans.jl",  # URL to your package repo
-    julia = true,          # is it written entirely in Julia?
-    license = "MIT",       # your package license
-    is_wrapper = false,    # does it wrap around some other package?
-)
+    uuid = "42b8e9d4-006b-409a-8472-7f34b3fb58af",
+    url  = "https://github.com/PyDataBlog/ParallelKMeans.jl",
+    julia = true,
+    license = "MIT",
+    is_wrapper = false)
 
 
 # Metadata for ParaKMeans model interface

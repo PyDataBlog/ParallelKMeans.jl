@@ -24,7 +24,7 @@ end
 
 
 @testset "Test bad struct warings" begin
-    @test_logs (:warn, "Unsuppored algorithm supplied. Defauting to KMeans++ seeding algorithm.") ParallelKMeans.KMeans(algo=:Fake)
+    @test_logs (:warn, "Unsupported KMeans variant, Defauting to KMeans++ seeding algorithm.") ParallelKMeans.KMeans(algo=:Fake)
     @test_logs (:warn, "Only `k-means++` or random seeding algorithms are supported. Defaulting to random seeding.") ParallelKMeans.KMeans(k_init="abc")
     @test_logs (:warn, "Number of clusters must be greater than 0. Defaulting to 3 clusters.") ParallelKMeans.KMeans(k=0)
     @test_logs (:warn, "Tolerance level must be less than 1. Defaulting to tol of 1e-6.") ParallelKMeans.KMeans(tol=2)
@@ -121,4 +121,16 @@ end
     @test preds[:x1][1] == 2
 end
 
+@testset "Testing " begin
+    Random.seed!(2020)
+    X = table([1 2; 1 4; 1 0; 10 2; 10 4; 10 0])
+    X_test = table([10 1])
+
+    model = KMeans(k=2, max_iters=1)
+    results = fit(model, X)
+
+    @test_logs (:warn, "Failed to converged. Using last assignments to make transformations.") transform(model, results, X_test)
+end
+
 end # module
+
