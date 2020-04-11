@@ -41,12 +41,13 @@ function kmeans!(alg::Hamerly, containers, design_matrix, k;
     @parallelize n_threads ncol chunk_initialize!(alg, containers, centroids, design_matrix)
 
     converged = false
-    niters = 1
+    niters = 0
     J_previous = 0.0
     p = containers.p
 
     # Update centroids & labels with closest members until convergence
-    while niters <= max_iters
+    while niters < max_iters
+        niters += 1
         update_containers!(containers, alg, centroids, n_threads)
         @parallelize n_threads ncol chunk_update_centroids!(centroids, containers, alg, design_matrix)
         collect_containers(alg, containers, n_threads)
@@ -58,7 +59,7 @@ function kmeans!(alg::Hamerly, containers, design_matrix, k;
         @parallelize n_threads ncol chunk_update_bounds!(containers, r1, r2, pr1, pr2)
 
         if verbose
-            # Show progress and terminate if J stopped decreasing.
+            # Show progress and terminate if J stops decreasing as specified by the tolerance level.
             println("Iteration $niters: Jclust = $J")
         end
 
@@ -69,7 +70,7 @@ function kmeans!(alg::Hamerly, containers, design_matrix, k;
         end
 
         J_previous = J
-        niters += 1
+
     end
 
     @parallelize n_threads ncol sum_of_squares(containers, design_matrix, containers.labels, centroids)

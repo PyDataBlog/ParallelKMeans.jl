@@ -189,12 +189,14 @@ function kmeans!(alg, containers, design_matrix, k;
     centroids = init == nothing ? smart_init(design_matrix, k, n_threads, init=k_init).centroids : deepcopy(init)
 
     converged = false
-    niters = 1
+    niters = 0
     J_previous = 0.0
 
     # Update centroids & labels with closest members until convergence
 
-    while niters <= max_iters
+    while niters < max_iters
+        niters += 1
+
         update_containers!(containers, alg, centroids, n_threads)
         J = update_centroids!(centroids, containers, alg, design_matrix, n_threads)
 
@@ -210,7 +212,7 @@ function kmeans!(alg, containers, design_matrix, k;
         end
 
         J_previous = J
-        niters += 1
+
     end
 
     totalcost = sum_of_squares(design_matrix, containers.labels, centroids)

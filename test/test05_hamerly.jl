@@ -29,7 +29,7 @@ end
 
     @test res.totalcost ≈ 14.16198704459199
     @test !res.converged
-    @test res.iterations == 11
+    @test res.iterations == 10
 
     Random.seed!(2020)
     X = rand(3, 100)
@@ -48,7 +48,7 @@ end
 
     @test res.totalcost ≈ 14.16198704459199
     @test !res.converged
-    @test res.iterations == 11
+    @test res.iterations == 10
 
     Random.seed!(2020)
     X = rand(3, 100)
