@@ -125,7 +125,7 @@ function chunk_update_centroids(::Lloyd, containers, centroids, X, r, idx)
     containers.J[idx] = J
 end
 
-function collect_containers(alg::T, containers, centroids, n_threads) where {T <: Union{LightElkan, Lloyd}}
+function collect_containers(alg::Lloyd, containers, centroids, n_threads)
     if n_threads == 1
         @inbounds centroids .= containers.centroids_new[1] ./ containers.centroids_cnt[1]'
     else

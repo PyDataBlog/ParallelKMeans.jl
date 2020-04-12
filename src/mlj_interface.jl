@@ -5,7 +5,7 @@ const ParallelKMeans_Desc = "Parallel & lightning fast implementation of all ava
 # availalbe variants for reference
 const MLJDICT = Dict(:Lloyd => Lloyd(),
                      :Hamerly => Hamerly(),
-                     :LightElkan => LightElkan())
+                     :Elkan => Elkan())
 
 ####
 #### MODEL DEFINITION
@@ -24,7 +24,7 @@ mutable struct KMeans <: MLJModelInterface.Unsupervised
 end
 
 
-function KMeans(; algo=:Lloyd, k_init="k-means++",
+function KMeans(; algo=:Hamerly, k_init="k-means++",
                 k=3, tol=1e-6, max_iters=300, copy=true,
                 threads=Threads.nthreads(), verbosity=0, init=nothing)
 
@@ -39,12 +39,12 @@ function MLJModelInterface.clean!(m::KMeans)
     warning = ""
 
     if !(m.algo ∈ keys(MLJDICT))
-        warning *= "Unsupported KMeans variant, Defauting to KMeans++ seeding algorithm."
-        m.algo = :Lloyd
+        warning *= "Unsupported KMeans variant, Defaulting to Hamerly algorithm."
+        m.algo = :Hamerly
 
     elseif m.k_init != "k-means++"
-        warning *= "Only `k-means++` or random seeding algorithms are supported. Defaulting to random seeding."
-        m.k_init = "random"
+        warning *= "Only `k-means++` or random seeding algorithms are supported. Defaulting to k-means++ seeding."
+        m.k_init = "kmeans++"
 
     elseif m.k < 1
         warning *= "Number of clusters must be greater than 0. Defaulting to 3 clusters."
@@ -63,8 +63,8 @@ function MLJModelInterface.clean!(m::KMeans)
         m.threads = Threads.nthreads()
 
     elseif !(m.verbosity ∈ (0, 1))
-        warning *= "Verbosity must be either 0 (no info) or 1 (info requested). Defaulting to 0."
-        m.verbosity = 0
+        warning *= "Verbosity must be either 0 (no info) or 1 (info requested). Defaulting to 1."
+        m.verbosity = 1
     end
     return warning
 end

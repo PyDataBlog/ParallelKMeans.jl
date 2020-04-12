@@ -57,7 +57,6 @@ function kmeans!(alg::Hamerly, containers, X, k;
         end
 
         J_previous = J
-
     end
 
     @parallelize n_threads ncol sum_of_squares(containers, X, containers.labels, centroids)

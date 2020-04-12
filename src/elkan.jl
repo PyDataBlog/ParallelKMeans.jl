@@ -29,11 +29,12 @@ function kmeans!(alg::Elkan, containers, X, k;
     @parallelize n_threads ncol chunk_initialize(alg, containers, centroids, X)
 
     converged = false
-    niters = 1
+    niters = 0
     J_previous = 0.0
 
     # Update centroids & labels with closest members until convergence
-    while niters <= max_iters
+    while niters < max_iters
+        niters += 1
         # Core iteration
         @parallelize n_threads ncol chunk_update_centroids(alg, containers, centroids, X)
 
@@ -66,7 +67,6 @@ function kmeans!(alg::Elkan, containers, X, k;
         # Step 1 in original paper, calulation of distance d(c, c')
         update_containers(alg, containers, centroids, n_threads)
         J_previous = J
-        niters += 1
     end
 
     @parallelize n_threads ncol sum_of_squares(containers, X, containers.labels, centroids)
