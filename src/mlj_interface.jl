@@ -142,7 +142,7 @@ function MMI.transform(m::KMeans, fitresult, Xnew)
         DMatrix = convert(Array{Float64, 2}, MMI.matrix(Xnew, transpose=true))
     end
 
-    # TODO: Warn users if fitresult is from a `non-converged` fit?
+    # Warn users if fitresult is from a `non-converged` fit
     if !fitresult[end].converged
         @warn "Failed to converged. Using last assignments to make transformations."
     end
