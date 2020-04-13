@@ -5,13 +5,13 @@ const ParallelKMeans_Desc = "Parallel & lightning fast implementation of all ava
 # availalbe variants for reference
 const MLJDICT = Dict(:Lloyd => Lloyd(),
                      :Hamerly => Hamerly(),
-                     :LightElkan => LightElkan())
+                     :Elkan => Elkan())
 
 ####
 #### MODEL DEFINITION
 ####
 
-mutable struct KMeans <: MLJModelInterface.Unsupervised
+mutable struct KMeans <: MMI.Unsupervised
     algo::Symbol
     k_init::String
     k::Int
@@ -24,49 +24,56 @@ mutable struct KMeans <: MLJModelInterface.Unsupervised
 end
 
 
-function KMeans(; algo=:Lloyd, k_init="k-means++",
+function KMeans(; algo=:Hamerly, k_init="k-means++",
                 k=3, tol=1e-6, max_iters=300, copy=true,
                 threads=Threads.nthreads(), verbosity=0, init=nothing)
 
     model   = KMeans(algo, k_init, k, tol, max_iters, copy, threads, verbosity, init)
-    message = MLJModelInterface.clean!(model)
+    message = MMI.clean!(model)
     isempty(message) || @warn message
     return model
 end
 
 
-function MLJModelInterface.clean!(m::KMeans)
-    warning = ""
+function MMI.clean!(m::KMeans)
+    warning = String[]
 
     if !(m.algo ∈ keys(MLJDICT))
-        warning *= "Unsupported KMeans variant, Defauting to KMeans++ seeding algorithm."
-        m.algo = :Lloyd
+        push!(warning, "Unsupported KMeans variant. Defaulting to Hamerly algorithm.")
+        m.algo = :Hamerly
+	end
 
-    elseif m.k_init != "k-means++"
-        warning *= "Only `k-means++` or random seeding algorithms are supported. Defaulting to random seeding."
-        m.k_init = "random"
+    if !(m.k_init ∈ ["k-means++", "random"])
+        push!(warning, "Only \"k-means++\" or \"random\" seeding algorithms are supported. Defaulting to k-means++ seeding.")
+        m.k_init = "kmeans++"
+	end
 
-    elseif m.k < 1
-        warning *= "Number of clusters must be greater than 0. Defaulting to 3 clusters."
+    if m.k < 1
+        push!(warning, "Number of clusters must be greater than 0. Defaulting to 3 clusters.")
         m.k = 3
+	end
 
-    elseif !(m.tol < 1.0)
-        warning *= "Tolerance level must be less than 1. Defaulting to tol of 1e-6."
+    if !(m.tol < 1.0)
+        push!(warning, "Tolerance level must be less than 1. Defaulting to tol of 1e-6.")
         m.tol = 1e-6
+	end
 
-    elseif !(m.max_iters > 0)
-        warning *= "Number of permitted iterations must be greater than 0. Defaulting to 300 iterations."
+    if !(m.max_iters > 0)
+        push!(warning, "Number of permitted iterations must be greater than 0. Defaulting to 300 iterations.")
         m.max_iters = 300
+	end
 
-    elseif !(m.threads > 0)
-        warning *= "Number of threads must be at least 1. Defaulting to all threads available."
+    if !(m.threads > 0)
+        push!(warning, "Number of threads must be at least 1. Defaulting to all threads available.")
         m.threads = Threads.nthreads()
+	end
 
-    elseif !(m.verbosity ∈ (0, 1))
-        warning *= "Verbosity must be either 0 (no info) or 1 (info requested). Defaulting to 0."
-        m.verbosity = 0
+    if !(m.verbosity ∈ (0, 1))
+        push!(warning, "Verbosity must be either 0 (no info) or 1 (info requested). Defaulting to 1.")
+        m.verbosity = 1
     end
-    return warning
+
+    return join(warning, "\n")
 end
 
 
@@ -78,14 +85,14 @@ end
 
     See also the [package documentation](https://pydatablog.github.io/ParallelKMeans.jl/stable).
 """
-function MLJModelInterface.fit(m::KMeans, X)
+function MMI.fit(m::KMeans, X)
     # convert tabular input data into the matrix model expects. Column assumed as features so input data is permuted
     if !m.copy
         # permutes dimensions of input table without copying and pass to model
-        DMatrix = convert(Array{Float64, 2}, MLJModelInterface.matrix(X)')
+        DMatrix = convert(Array{Float64, 2}, MMI.matrix(X)')
     else
         # permutes dimensions of input table as a column major matrix from a copy of the data
-        DMatrix = convert(Array{Float64, 2}, MLJModelInterface.matrix(X, transpose=true))
+        DMatrix = convert(Array{Float64, 2}, MMI.matrix(X, transpose=true))
     end
 
     # lookup available algorithms
@@ -106,7 +113,7 @@ function MLJModelInterface.fit(m::KMeans, X)
 end
 
 
-function MLJModelInterface.fitted_params(model::KMeans, fitresult)
+function MMI.fitted_params(model::KMeans, fitresult)
     # extract what's relevant from `fitresult`
     results, _, _ = fitresult  # unpack fitresult
     centers = results.centers
@@ -124,15 +131,15 @@ end
 #### PREDICT FUNCTION
 ####
 
-function MLJModelInterface.transform(m::KMeans, fitresult, Xnew)
+function MMI.transform(m::KMeans, fitresult, Xnew)
     # make predictions/assignments using the learned centroids
 
     if !m.copy
         # permutes dimensions of input table without copying and pass to model
-        DMatrix = convert(Array{Float64, 2}, MLJModelInterface.matrix(Xnew)')
+        DMatrix = convert(Array{Float64, 2}, MMI.matrix(Xnew)')
     else
         # permutes dimensions of input table as a column major matrix from a copy of the data
-        DMatrix = convert(Array{Float64, 2}, MLJModelInterface.matrix(Xnew, transpose=true))
+        DMatrix = convert(Array{Float64, 2}, MMI.matrix(Xnew, transpose=true))
     end
 
     # TODO: Warn users if fitresult is from a `non-converged` fit?
@@ -147,7 +154,7 @@ function MLJModelInterface.transform(m::KMeans, fitresult, Xnew)
     centroids = results.centers
     distances = Distances.pairwise(Distances.SqEuclidean(), DMatrix, centroids; dims=2)
     preds = argmin.(eachrow(distances))
-    return MLJModelInterface.table(reshape(preds, :, 1), prototype=Xnew)
+    return MMI.table(reshape(preds, :, 1), prototype=Xnew)
 end
 
 
@@ -156,7 +163,7 @@ end
 ####
 
 # TODO 4: metadata for the package and for each of the model interfaces
-metadata_pkg.(KMeans,
+MMI.metadata_pkg.(KMeans,
     name = "ParallelKMeans",
     uuid = "42b8e9d4-006b-409a-8472-7f34b3fb58af",
     url  = "https://github.com/PyDataBlog/ParallelKMeans.jl",
@@ -166,9 +173,9 @@ metadata_pkg.(KMeans,
 
 
 # Metadata for ParaKMeans model interface
-metadata_model(KMeans,
-    input   = MLJModelInterface.Table(MLJModelInterface.Continuous),
-    output  = MLJModelInterface.Table(MLJModelInterface.Count),
+MMI.metadata_model(KMeans,
+    input   = MMI.Table(MMI.Continuous),
+    output  = MMI.Table(MMI.Count),
     weights = false,
     descr   = ParallelKMeans_Desc,
 	path	= "ParallelKMeans.KMeans")

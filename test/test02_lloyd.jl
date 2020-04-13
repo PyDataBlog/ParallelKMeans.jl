@@ -1,4 +1,4 @@
-module TestKMeans
+module TestLloyd
 
 using ParallelKMeans
 using Test

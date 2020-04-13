@@ -18,27 +18,14 @@ kmeans(Hamerly(), X, 3) # 3 clusters, Hamerly algorithm
 struct Hamerly <: AbstractKMeansAlg end
 
 
-function kmeans(alg::Hamerly, design_matrix, k;
+function kmeans!(alg::Hamerly, containers, X, k;
                 n_threads = Threads.nthreads(),
                 k_init = "k-means++", max_iters = 300,
                 tol = 1e-6, verbose = false, init = nothing)
-    nrow, ncol = size(design_matrix)
-    containers = create_containers(alg, k, nrow, ncol, n_threads)
+    nrow, ncol = size(X)
+    centroids = init == nothing ? smart_init(X, k, n_threads, init=k_init).centroids : deepcopy(init)
 
-    return kmeans!(alg, containers, design_matrix, k, n_threads = n_threads,
-                    k_init = k_init, max_iters = max_iters, tol = tol,
-                    verbose = verbose, init = init)
-end
-
-
-function kmeans!(alg::Hamerly, containers, design_matrix, k;
-                n_threads = Threads.nthreads(),
-                k_init = "k-means++", max_iters = 300,
-                tol = 1e-6, verbose = false, init = nothing)
-    nrow, ncol = size(design_matrix)
-    centroids = init == nothing ? smart_init(design_matrix, k, n_threads, init=k_init).centroids : deepcopy(init)
-
-    @parallelize n_threads ncol chunk_initialize!(alg, containers, centroids, design_matrix)
+    @parallelize n_threads ncol chunk_initialize(alg, containers, centroids, X)
 
     converged = false
     niters = 0
@@ -48,15 +35,15 @@ function kmeans!(alg::Hamerly, containers, design_matrix, k;
     # Update centroids & labels with closest members until convergence
     while niters < max_iters
         niters += 1
-        update_containers!(containers, alg, centroids, n_threads)
-        @parallelize n_threads ncol chunk_update_centroids!(centroids, containers, alg, design_matrix)
+        update_containers(alg, containers, centroids, n_threads)
+        @parallelize n_threads ncol chunk_update_centroids(alg, containers, centroids, X)
         collect_containers(alg, containers, n_threads)
 
         J = sum(containers.ub)
-        move_centers!(centroids, containers, alg)
+        move_centers(alg, containers, centroids)
 
         r1, r2, pr1, pr2 = double_argmax(p)
-        @parallelize n_threads ncol chunk_update_bounds!(containers, r1, r2, pr1, pr2)
+        @parallelize n_threads ncol chunk_update_bounds(alg, containers, r1, r2, pr1, pr2)
 
         if verbose
             # Show progress and terminate if J stops decreasing as specified by the tolerance level.
@@ -70,10 +57,9 @@ function kmeans!(alg::Hamerly, containers, design_matrix, k;
         end
 
         J_previous = J
-
     end
 
-    @parallelize n_threads ncol sum_of_squares(containers, design_matrix, containers.labels, centroids)
+    @parallelize n_threads ncol sum_of_squares(containers, X, containers.labels, centroids)
     totalcost = sum(containers.sum_of_squares)
 
     # Terminate algorithm with the assumption that K-means has converged
@@ -144,29 +130,29 @@ function create_containers(alg::Hamerly, k, nrow, ncol, n_threads)
 end
 
 """
-    chunk_initialize!(alg::Hamerly, containers, centroids, design_matrix, r, idx)
+    chunk_initialize(alg::Hamerly, containers, centroids, design_matrix, r, idx)
 
 Initial calulation of all bounds and points labeling.
 """
-function chunk_initialize!(alg::Hamerly, containers, centroids, design_matrix, r, idx)
+function chunk_initialize(alg::Hamerly, containers, centroids, X, r, idx)
     centroids_cnt = containers.centroids_cnt[idx]
     centroids_new = containers.centroids_new[idx]
 
     @inbounds for i in r
-        label = point_all_centers!(containers, centroids, design_matrix, i)
+        label = point_all_centers!(containers, centroids, X, i)
         centroids_cnt[label] += 1
-        for j in axes(design_matrix, 1)
-            centroids_new[j, label] += design_matrix[j, i]
+        for j in axes(X, 1)
+            centroids_new[j, label] += X[j, i]
         end
     end
 end
 
 """
-    update_containers!(containers, ::Hamerly, centroids, n_threads)
+    update_containers(::Hamerly, containers, centroids, n_threads)
 
 Calculates minimum distances from centers to each other.
 """
-function update_containers!(containers, ::Hamerly, centroids, n_threads)
+function update_containers(::Hamerly, containers, centroids, n_threads)
     s = containers.s
     s .= Inf
     @inbounds for i in axes(centroids, 2)
@@ -180,13 +166,13 @@ function update_containers!(containers, ::Hamerly, centroids, n_threads)
 end
 
 """
-    chunk_update_centroids!(centroids, containers, alg::Hamerly, design_matrix, r, idx)
+    chunk_update_centroids(::Hamerly, containers, centroids, X, r, idx)
 
 Detailed description of this function can be found in the original paper. It iterates through
 all points and tries to skip some calculation using known upper and lower bounds of distances
 from point to centers. If it fails to skip than it fall back to generic `point_all_centers!` function.
 """
-function chunk_update_centroids!(centroids, containers, alg::Hamerly, design_matrix, r, idx)
+function chunk_update_centroids(alg::Hamerly, containers, centroids, X, r, idx)
 
     # unpack containers for easier manipulations
     centroids_new = containers.centroids_new[idx]
@@ -203,17 +189,17 @@ function chunk_update_centroids!(centroids, containers, alg::Hamerly, design_mat
         if ub[i] > m
             # tighten upper bound
             label = labels[i]
-            ub[i] = distance(design_matrix, centroids, i, label)
+            ub[i] = distance(X, centroids, i, label)
             # second bound test
             if ub[i] > m
-                label_new = point_all_centers!(containers, centroids, design_matrix, i)
+                label_new = point_all_centers!(containers, centroids, X, i)
                 if label != label_new
                     labels[i] = label_new
                     centroids_cnt[label_new] += 1
                     centroids_cnt[label] -= 1
-                    for j in axes(design_matrix, 1)
-                        centroids_new[j, label_new] += design_matrix[j, i]
-                        centroids_new[j, label] -= design_matrix[j, i]
+                    for j in axes(X, 1)
+                        centroids_new[j, label_new] += X[j, i]
+                        centroids_new[j, label] -= X[j, i]
                     end
                 end
             end
@@ -222,11 +208,11 @@ function chunk_update_centroids!(centroids, containers, alg::Hamerly, design_mat
 end
 
 """
-    point_all_centers!(containers, centroids, design_matrix, i)
+    point_all_centers!(containers, centroids, X, i)
 
 Calculates new labels and upper and lower bounds for all points.
 """
-function point_all_centers!(containers, centroids, design_matrix, i)
+function point_all_centers!(containers, centroids, X, i)
     ub = containers.ub
     lb = containers.lb
     labels = containers.labels
@@ -235,7 +221,7 @@ function point_all_centers!(containers, centroids, design_matrix, i)
     min_distance2 = Inf
     label = 1
     @inbounds for k in axes(centroids, 2)
-        dist = distance(design_matrix, centroids, i, k)
+        dist = distance(X, centroids, i, k)
         if min_distance > dist
             label = k
             min_distance2 = min_distance
@@ -253,12 +239,12 @@ function point_all_centers!(containers, centroids, design_matrix, i)
 end
 
 """
-    move_centers!(centroids, containers, ::Hamerly)
+    move_centers(::Hamerly, containers, centroids)
 
 Calculates new positions of centers and distance they have moved. Results are stored
 in `centroids` and `p` respectively.
 """
-function move_centers!(centroids, containers, ::Hamerly)
+function move_centers(::Hamerly, containers, centroids)
     centroids_new = containers.centroids_new[end]
     p = containers.p
 
@@ -273,11 +259,11 @@ function move_centers!(centroids, containers, ::Hamerly)
 end
 
 """
-    chunk_update_bounds!(containers, r1, r2, pr1, pr2, r, idx)
+    chunk_update_bounds(alg::Hamerly, containers, r1, r2, pr1, pr2, r, idx)
 
 Updates upper and lower bounds of point distance to the centers, with regard to the centers movement.
 """
-function chunk_update_bounds!(containers, r1, r2, pr1, pr2, r, idx)
+function chunk_update_bounds(alg::Hamerly, containers, r1, r2, pr1, pr2, r, idx)
     p = containers.p
     ub = containers.ub
     lb = containers.lb

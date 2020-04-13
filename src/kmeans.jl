@@ -93,6 +93,7 @@ Allocationless calculation of square eucledean distance between vectors X1[:, i1
 """
 function distance(X1, X2, i1, i2)
     d = 0.0
+    # TODO: break of the loop if d is larger than threshold (known minimum disatnce)
     @inbounds for i in axes(X1, 1)
         d += (X1[i, i1] - X2[i, i2])^2
     end
@@ -108,18 +109,6 @@ design matrix(x), centroids (centre), and the number of desired groups (k).
 
 A Float type representing the computed metric is returned.
 """
-function sum_of_squares(x, labels, centre)
-    s = 0.0
-
-    @inbounds for j in axes(x, 2)
-        for i in axes(x, 1)
-            s += (x[i, j] - centre[i, labels[j]])^2
-        end
-    end
-
-    return s
-end
-
 function sum_of_squares(containers, x, labels, centre, r, idx)
     s = 0.0
 
@@ -169,101 +158,4 @@ function kmeans(alg, design_matrix, k;
     return kmeans!(alg, containers, design_matrix, k, n_threads = n_threads,
                     k_init = k_init, max_iters = max_iters, tol = tol,
                     verbose = verbose, init = init)
-end
-
-
-"""
-    Kmeans!(alg::AbstractKMeansAlg, containers, design_matrix, k; n_threads = nthreads(), k_init="k-means++", max_iters=300, tol=1e-6, verbose=false)
-
-Mutable version of `kmeans` function. Definition of arguments and results can be
-found in `kmeans`.
-
-Argument `containers` represent algorithm specific containers, such as labels, intermidiate
-centroids and so on, which are used during calculations.
-"""
-function kmeans!(alg, containers, design_matrix, k;
-                n_threads = Threads.nthreads(),
-                k_init = "k-means++", max_iters = 300,
-                tol = 1e-6, verbose = false, init = nothing)
-    nrow, ncol = size(design_matrix)
-    centroids = init == nothing ? smart_init(design_matrix, k, n_threads, init=k_init).centroids : deepcopy(init)
-
-    converged = false
-    niters = 0
-    J_previous = 0.0
-
-    # Update centroids & labels with closest members until convergence
-
-    while niters < max_iters
-        niters += 1
-
-        update_containers!(containers, alg, centroids, n_threads)
-        J = update_centroids!(centroids, containers, alg, design_matrix, n_threads)
-
-        if verbose
-            # Show progress and terminate if J stopped decreasing.
-            println("Iteration $niters: Jclust = $J")
-        end
-
-        # Check for convergence
-        if (niters > 1) & (abs(J - J_previous) < (tol * J))
-            converged = true
-            break
-        end
-
-        J_previous = J
-
-    end
-
-    totalcost = sum_of_squares(design_matrix, containers.labels, centroids)
-
-    # Terminate algorithm with the assumption that K-means has converged
-    if verbose & converged
-        println("Successfully terminated with convergence.")
-    end
-
-    # TODO empty placeholder vectors should be calculated
-    # TODO Float64 type definitions is too restrictive, should be relaxed
-    # especially during GPU related development
-    return KmeansResult(centroids, containers.labels, Float64[], Int[], Float64[], totalcost, niters, converged)
-end
-
-"""
-    update_centroids!(centroids, containers, alg, design_matrix, n_threads)
-
-Internal function, used to update centroids by utilizing one of `alg`. It works as
-a wrapper of internal `chunk_update_centroids!` function, splitting incoming
-`design_matrix` in chunks and combining results together.
-"""
-function update_centroids!(centroids, containers, alg, design_matrix, n_threads)
-    ncol = size(design_matrix, 2)
-
-    if n_threads == 1
-        r = axes(design_matrix, 2)
-        J = chunk_update_centroids!(centroids, containers, alg, design_matrix, r, 1)
-
-        centroids .= containers.new_centroids[1] ./ containers.centroids_cnt[1]'
-    else
-        ranges = splitter(ncol, n_threads)
-
-        waiting_list = Vector{Task}(undef, n_threads - 1)
-
-        for i in 1:length(ranges) - 1
-            waiting_list[i] = @spawn chunk_update_centroids!(centroids, containers,
-                alg, design_matrix, ranges[i], i + 1)
-        end
-
-        J = chunk_update_centroids!(centroids, containers, alg, design_matrix, ranges[end], 1)
-
-        J += sum(fetch.(waiting_list))
-
-        for i in 1:length(ranges) - 1
-            containers.new_centroids[1] .+= containers.new_centroids[i + 1]
-            containers.centroids_cnt[1] .+= containers.centroids_cnt[i + 1]
-        end
-
-        centroids .= containers.new_centroids[1] ./ containers.centroids_cnt[1]'
-    end
-
-    return J
 end
