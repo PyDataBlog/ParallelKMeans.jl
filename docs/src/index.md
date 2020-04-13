@@ -1,4 +1,4 @@
-# ParallelKMeans.jl Package
+# [ParallelKMeans.jl Package](https://github.com/PyDataBlog/ParallelKMeans.jl)
 
 ```@contents
 Depth = 4
@@ -59,7 +59,7 @@ git checkout experimental
 
 - [X] Implementation of [Hamerly implementation](https://www.researchgate.net/publication/220906984_Making_k-means_Even_Faster).
 - [X] Interface for inclusion in Alan Turing Institute's [MLJModels](https://github.com/alan-turing-institute/MLJModels.jl#who-is-this-repo-for).
-- [ ] Full Implementation of Triangle inequality based on [Elkan - 2003 Using the Triangle Inequality to Accelerate K-Means"](https://www.aaai.org/Papers/ICML/2003/ICML03-022.pdf).
+- [X] Full Implementation of Triangle inequality based on [Elkan - 2003 Using the Triangle Inequality to Accelerate K-Means"](https://www.aaai.org/Papers/ICML/2003/ICML03-022.pdf).
 - [ ] Implementation of [Geometric methods to accelerate k-means algorithm](http://cs.baylor.edu/~hamerly/papers/sdm2016_rysavy_hamerly.pdf).
 - [ ] Native support for tabular data inputs outside of MLJModels' interface.
 - [ ] Refactoring and finalizaiton of API desgin.
@@ -177,6 +177,7 @@ ________________________________________________________________________________
 
 - 0.1.0 Initial release
 - 0.1.1 Added interface for MLJ
+- 0.1.2 Added Elkan algorithm
 
 ## Contributing
 

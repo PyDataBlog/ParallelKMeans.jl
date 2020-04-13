@@ -11,7 +11,7 @@ const MLJDICT = Dict(:Lloyd => Lloyd(),
 #### MODEL DEFINITION
 ####
 
-mutable struct KMeans <: MLJModelInterface.Unsupervised
+mutable struct KMeans <: MMI.Unsupervised
     algo::Symbol
     k_init::String
     k::Int
@@ -29,13 +29,13 @@ function KMeans(; algo=:Hamerly, k_init="k-means++",
                 threads=Threads.nthreads(), verbosity=0, init=nothing)
 
     model   = KMeans(algo, k_init, k, tol, max_iters, copy, threads, verbosity, init)
-    message = MLJModelInterface.clean!(model)
+    message = MMI.clean!(model)
     isempty(message) || @warn message
     return model
 end
 
 
-function MLJModelInterface.clean!(m::KMeans)
+function MMI.clean!(m::KMeans)
     warning = ""
 
     if !(m.algo ∈ keys(MLJDICT))
@@ -78,14 +78,14 @@ end
 
     See also the [package documentation](https://pydatablog.github.io/ParallelKMeans.jl/stable).
 """
-function MLJModelInterface.fit(m::KMeans, X)
+function MMI.fit(m::KMeans, X)
     # convert tabular input data into the matrix model expects. Column assumed as features so input data is permuted
     if !m.copy
         # permutes dimensions of input table without copying and pass to model
-        DMatrix = convert(Array{Float64, 2}, MLJModelInterface.matrix(X)')
+        DMatrix = convert(Array{Float64, 2}, MMI.matrix(X)')
     else
         # permutes dimensions of input table as a column major matrix from a copy of the data
-        DMatrix = convert(Array{Float64, 2}, MLJModelInterface.matrix(X, transpose=true))
+        DMatrix = convert(Array{Float64, 2}, MMI.matrix(X, transpose=true))
     end
 
     # lookup available algorithms
@@ -106,7 +106,7 @@ function MLJModelInterface.fit(m::KMeans, X)
 end
 
 
-function MLJModelInterface.fitted_params(model::KMeans, fitresult)
+function MMI.fitted_params(model::KMeans, fitresult)
     # extract what's relevant from `fitresult`
     results, _, _ = fitresult  # unpack fitresult
     centers = results.centers
@@ -124,15 +124,15 @@ end
 #### PREDICT FUNCTION
 ####
 
-function MLJModelInterface.transform(m::KMeans, fitresult, Xnew)
+function MMI.transform(m::KMeans, fitresult, Xnew)
     # make predictions/assignments using the learned centroids
 
     if !m.copy
         # permutes dimensions of input table without copying and pass to model
-        DMatrix = convert(Array{Float64, 2}, MLJModelInterface.matrix(Xnew)')
+        DMatrix = convert(Array{Float64, 2}, MMI.matrix(Xnew)')
     else
         # permutes dimensions of input table as a column major matrix from a copy of the data
-        DMatrix = convert(Array{Float64, 2}, MLJModelInterface.matrix(Xnew, transpose=true))
+        DMatrix = convert(Array{Float64, 2}, MMI.matrix(Xnew, transpose=true))
     end
 
     # TODO: Warn users if fitresult is from a `non-converged` fit?
@@ -147,7 +147,7 @@ function MLJModelInterface.transform(m::KMeans, fitresult, Xnew)
     centroids = results.centers
     distances = Distances.pairwise(Distances.SqEuclidean(), DMatrix, centroids; dims=2)
     preds = argmin.(eachrow(distances))
-    return MLJModelInterface.table(reshape(preds, :, 1), prototype=Xnew)
+    return MMI.table(reshape(preds, :, 1), prototype=Xnew)
 end
 
 
@@ -156,7 +156,7 @@ end
 ####
 
 # TODO 4: metadata for the package and for each of the model interfaces
-metadata_pkg.(KMeans,
+MMI.metadata_pkg.(KMeans,
     name = "ParallelKMeans",
     uuid = "42b8e9d4-006b-409a-8472-7f34b3fb58af",
     url  = "https://github.com/PyDataBlog/ParallelKMeans.jl",
@@ -166,9 +166,9 @@ metadata_pkg.(KMeans,
 
 
 # Metadata for ParaKMeans model interface
-metadata_model(KMeans,
-    input   = MLJModelInterface.Table(MLJModelInterface.Continuous),
-    output  = MLJModelInterface.Table(MLJModelInterface.Count),
+MMI.metadata_model(KMeans,
+    input   = MMI.Table(MMI.Continuous),
+    output  = MMI.Table(MMI.Count),
     weights = false,
     descr   = ParallelKMeans_Desc,
 	path	= "ParallelKMeans.KMeans")
