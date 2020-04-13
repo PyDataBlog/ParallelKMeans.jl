@@ -36,37 +36,44 @@ end
 
 
 function MMI.clean!(m::KMeans)
-    warning = ""
+    warning = String[]
 
     if !(m.algo ∈ keys(MLJDICT))
-        warning *= "Unsupported KMeans variant, Defaulting to Hamerly algorithm."
+        push!(warning, "Unsupported KMeans variant. Defaulting to Hamerly algorithm.")
         m.algo = :Hamerly
+	end
 
-    elseif m.k_init != "k-means++"
-        warning *= "Only `k-means++` or random seeding algorithms are supported. Defaulting to k-means++ seeding."
+    if !(m.k_init ∈ ["k-means++", "random"])
+        push!(warning, "Only \"k-means++\" or \"random\" seeding algorithms are supported. Defaulting to k-means++ seeding.")
         m.k_init = "kmeans++"
+	end
 
-    elseif m.k < 1
-        warning *= "Number of clusters must be greater than 0. Defaulting to 3 clusters."
+    if m.k < 1
+        push!(warning, "Number of clusters must be greater than 0. Defaulting to 3 clusters.")
         m.k = 3
+	end
 
-    elseif !(m.tol < 1.0)
-        warning *= "Tolerance level must be less than 1. Defaulting to tol of 1e-6."
+    if !(m.tol < 1.0)
+        push!(warning, "Tolerance level must be less than 1. Defaulting to tol of 1e-6.")
         m.tol = 1e-6
+	end
 
-    elseif !(m.max_iters > 0)
-        warning *= "Number of permitted iterations must be greater than 0. Defaulting to 300 iterations."
+    if !(m.max_iters > 0)
+        push!(warning, "Number of permitted iterations must be greater than 0. Defaulting to 300 iterations.")
         m.max_iters = 300
+	end
 
-    elseif !(m.threads > 0)
-        warning *= "Number of threads must be at least 1. Defaulting to all threads available."
+    if !(m.threads > 0)
+        push!(warning, "Number of threads must be at least 1. Defaulting to all threads available.")
         m.threads = Threads.nthreads()
+	end
 
-    elseif !(m.verbosity ∈ (0, 1))
-        warning *= "Verbosity must be either 0 (no info) or 1 (info requested). Defaulting to 1."
+    if !(m.verbosity ∈ (0, 1))
+        push!(warning, "Verbosity must be either 0 (no info) or 1 (info requested). Defaulting to 1.")
         m.verbosity = 1
     end
-    return warning
+
+    return join(warning, "\n")
 end
 
 

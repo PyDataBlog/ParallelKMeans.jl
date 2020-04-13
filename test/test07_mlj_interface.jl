@@ -24,8 +24,8 @@ end
 
 
 @testset "Test bad struct warings" begin
-    @test_logs (:warn, "Unsupported KMeans variant, Defaulting to Hamerly algorithm.") ParallelKMeans.KMeans(algo=:Fake)
-    @test_logs (:warn, "Only `k-means++` or random seeding algorithms are supported. Defaulting to k-means++ seeding.") ParallelKMeans.KMeans(k_init="abc")
+    @test_logs (:warn, "Unsupported KMeans variant. Defaulting to Hamerly algorithm.") ParallelKMeans.KMeans(algo=:Fake)
+    @test_logs (:warn, "Only \"k-means++\" or \"random\" seeding algorithms are supported. Defaulting to k-means++ seeding.") ParallelKMeans.KMeans(k_init="abc")
     @test_logs (:warn, "Number of clusters must be greater than 0. Defaulting to 3 clusters.") ParallelKMeans.KMeans(k=0)
     @test_logs (:warn, "Tolerance level must be less than 1. Defaulting to tol of 1e-6.") ParallelKMeans.KMeans(tol=2)
     @test_logs (:warn, "Number of permitted iterations must be greater than 0. Defaulting to 300 iterations.") ParallelKMeans.KMeans(max_iters=0)
