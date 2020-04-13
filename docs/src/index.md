@@ -80,7 +80,7 @@ multi_results = kmeans(X, 3; max_iters=300)
 results = kmeans(X, 3; n_threads=1, max_iters=300)
 ```
 
-The main design goal is to offer all available variations of the KMeans algorithm to end users as composable elements. By default, Lloyd's implementation is used but users can specify different variations of the KMeans clustering algorithm via this interface
+The main design goal is to offer all available variations of the KMeans algorithm to end users as composable elements. By default, Lloyd's implementation is used but users can specify different variations of the KMeans clustering algorithm via this interface;
 
 ```julia
 some_results = kmeans([algo], input_matrix, k; kwargs)
@@ -159,15 +159,15 @@ Currently, the benchmark speed tests are based on the search for optimal number 
 
 _________________________________________________________________________________________________________
 
-| 1 million (ms) | 100k (ms) | 10k (ms) | 1k (ms) | package                 | language |
-|:--------------:|:---------:|:--------:|:-------:|:-----------------------:|:--------:|
-| 600184.00      | 31959.00  | 832.25   | 18.19   | Clustering.jl           | Julia    |
-| 35733.00       | 4473.00   | 255.71   | 8.94    | Lloyd                   | Julia    |
-| 12617.00       | 1655.00   | 122.53   | 7.98    | Hamerly                 | Julia    |
-| 1430000.00     | 146000.00 | 5770.00  | 344.00  | Sklearn Kmeans          | Python   |
-| 30100.00       | 3750.00   | 613.00   | 201.00  | Sklearn MiniBatchKmeans | Python   |
-| 218200.00      | 15510.00  | 733.70   | 19.47   | Knor                    | R        |
-
+|1 million (ms)|100k (ms)|10k (ms)|1k (ms)|package                |language|
+|:------------:|:-------:|:------:|:-----:|:---------------------:|:------:|
+|    666840    |  34034  |709.049 |17.686 |     Clustering.jl     | Julia  |
+|    21730     |  2975   |163.771 | 6.444 | ParallelKMeans Lloyd  | Julia  |
+|    11784     |  1339   | 94.233 |  6.6  |ParallelKMeans Hamerly | Julia  |
+|    17591     |  1074   | 81.995 | 6.953 | ParallelKMeans Elkan  | Julia  |
+|   1430000    | 146000  |  5770  |  344  |    Sklearn Kmeans     | Python |
+|    30100     |  3750   |  613   |  201  |Sklearn MiniBatchKmeans| Python |
+|    218200    |  15510  | 733.7  | 19.47 |         Knor          |   R    |
 _________________________________________________________________________________________________________
 
 ## Release History
