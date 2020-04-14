@@ -19,16 +19,15 @@ mutable struct KMeans <: MMI.Unsupervised
     max_iters::Int
     copy::Bool
     threads::Int
-    verbosity::Int
     init
 end
 
 
 function KMeans(; algo=:Hamerly, k_init="k-means++",
                 k=3, tol=1e-6, max_iters=300, copy=true,
-                threads=Threads.nthreads(), verbosity=0, init=nothing)
+                threads=Threads.nthreads(), init=nothing)
 
-    model   = KMeans(algo, k_init, k, tol, max_iters, copy, threads, verbosity, init)
+    model   = KMeans(algo, k_init, k, tol, max_iters, copy, threads, init)
     message = MMI.clean!(model)
     isempty(message) || @warn message
     return model
@@ -68,11 +67,6 @@ function MMI.clean!(m::KMeans)
         m.threads = Threads.nthreads()
 	end
 
-    if !(m.verbosity ∈ (0, 1))
-        push!(warning, "Verbosity must be either 0 (no info) or 1 (info requested). Defaulting to 1.")
-        m.verbosity = 1
-    end
-
     return join(warning, "\n")
 end
 
@@ -85,7 +79,7 @@ end
 
     See also the [package documentation](https://pydatablog.github.io/ParallelKMeans.jl/stable).
 """
-function MMI.fit(m::KMeans, X)
+function MMI.fit(m::KMeans, verbosity::Int, X)
     # convert tabular input data into the matrix model expects. Column assumed as features so input data is permuted
     if !m.copy
         # permutes dimensions of input table without copying and pass to model
@@ -99,16 +93,22 @@ function MMI.fit(m::KMeans, X)
     algo = MLJDICT[m.algo]  # select algo
 
     # fit model and get results
-    verbose = m.verbosity != 0
+    verbose = verbosity > 0  # Display fitting operations if verbosity > 0
     fitresult = ParallelKMeans.kmeans(algo, DMatrix, m.k;
                                       n_threads = m.threads, k_init=m.k_init,
                                       max_iters=m.max_iters, tol=m.tol, init=m.init,
                                       verbose=verbose)
+
     cache = nothing
     report = (cluster_centers=fitresult.centers, iterations=fitresult.iterations,
               converged=fitresult.converged, totalcost=fitresult.totalcost,
               labels=fitresult.assignments)
-
+    """
+    # TODO: warn users about non convergence
+    if verbose & (!fitresult.converged)
+        @warn "Specified model failed to converge."
+    end
+    """
     return (fitresult, cache, report)
 end
 
@@ -144,7 +144,7 @@ function MMI.transform(m::KMeans, fitresult, Xnew)
 
     # Warn users if fitresult is from a `non-converged` fit
     if !fitresult[end].converged
-        @warn "Failed to converged. Using last assignments to make transformations."
+        @warn "Failed to converge. Using last assignments to make transformations."
     end
 
     # results from fitted model
@@ -175,7 +175,7 @@ MMI.metadata_pkg.(KMeans,
 # Metadata for ParaKMeans model interface
 MMI.metadata_model(KMeans,
     input   = MMI.Table(MMI.Continuous),
-    output  = MMI.Table(MMI.Count),
+    output  = MMI.Table(MMI.Continuous),
     weights = false,
     descr   = ParallelKMeans_Desc,
 	path	= "ParallelKMeans.KMeans")
