@@ -139,7 +139,7 @@ function MMI.transform(m::KMeans, fitresult, Xnew)
     end
 
     # Warn users if fitresult is from a `non-converged` fit
-    if !(fitresult.converged)
+    if !fitresult.converged
         @warn "Failed to converge. Using last assignments to make transformations."
     end
 
@@ -160,7 +160,7 @@ function MMI.predict(m::KMeans, fitresult, Xnew)
     @inbounds for i ∈ 1:n
         minv = Inf
         for j ∈ 1:k
-            curv    = Distances.evaluate(Distances.SqEuclidean(), view(Xarray, i, :), view(locations, :, j))
+            curv    = Distances.evaluate(Distances.Euclidean(), view(Xarray, i, :), view(locations, :, j))
             P       = curv < minv
             pred[i] =    j * P + pred[i] * !P # if P is true --> j
             minv    = curv * P +    minv * !P # if P is true --> curvalue
