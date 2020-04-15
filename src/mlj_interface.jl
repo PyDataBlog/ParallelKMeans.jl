@@ -100,12 +100,11 @@ function MMI.fit(m::KMeans, verbosity::Int, X)
                                       verbose=verbose)
 
     cluster_labels = MMI.categorical(1:m.k)
-    fitresult = (result.centers, cluster_labels, result.converged)
+    fitresult = (centers = result.centers, labels = cluster_labels, converged = result.converged)
     cache = nothing
 
     report = (cluster_centers=result.centers, iterations=result.iterations,
-              converged=result.converged, totalcost=result.totalcost,
-              assignments=result.assignments, labels=cluster_labels)
+              totalcost=result.totalcost, assignments=result.assignments, labels=cluster_labels)
 
 
     """
@@ -120,7 +119,7 @@ end
 
 function MMI.fitted_params(model::KMeans, fitresult)
     # Centroids
-    return (cluster_centers = fitresult[1], )
+    return (cluster_centers = fitresult.centers, )
 end
 
 
@@ -129,7 +128,7 @@ end
 ####
 
 function MMI.transform(m::KMeans, fitresult, Xnew)
-    # make predictions/assignments using the learned centroids
+    # transform new data using the fitted centroids.
 
     if !m.copy
         # permutes dimensions of input table without copying and pass to model
@@ -140,13 +139,12 @@ function MMI.transform(m::KMeans, fitresult, Xnew)
     end
 
     # Warn users if fitresult is from a `non-converged` fit
-    if !(fitresult[end])
+    if !(fitresult.converged)
         @warn "Failed to converge. Using last assignments to make transformations."
     end
 
     # use centroid matrix to assign clusters for new data
-    centroids = fitresult[1]
-    distances = Distances.pairwise(Distances.SqEuclidean(), DMatrix, centroids; dims=2)
+    distances = Distances.pairwise(Distances.SqEuclidean(), DMatrix, fitresult.centers; dims=2)
     #preds = argmin.(eachrow(distances))
     return MMI.table(distances, prototype=Xnew)
 end

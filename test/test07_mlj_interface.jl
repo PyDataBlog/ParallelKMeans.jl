@@ -50,9 +50,9 @@ end
     model = KMeans(algo = :Lloyd, k=2)
     results, cache, report = fit(model, 0, X)
 
-    @test cache             == nothing
-    @test report.converged  == true
-    @test report.totalcost  == 16
+    @test cache              == nothing
+    @test results.converged  == true
+    @test report.totalcost   == 16
 
     params = fitted_params(model, results)
     @test params.cluster_centers == [1.0 10.0; 2.0 2.0]
@@ -76,9 +76,9 @@ end
     model = KMeans(algo = :Hamerly, k=2)
     results, cache, report = fit(model, 0, X)
 
-    @test cache             == nothing
-    @test report.converged  == true
-    @test report.totalcost  == 16
+    @test cache              == nothing
+    @test results.converged  == true
+    @test report.totalcost   == 16
 
     params = fitted_params(model, results)
     @test params.cluster_centers == [1.0 10.0; 2.0 2.0]
@@ -102,9 +102,9 @@ end
     model = KMeans(algo = :Elkan, k=2)
     results, cache, report = fit(model, 0, X)
 
-    @test cache             == nothing
-    @test report.converged  == true
-    @test report.totalcost  == 16
+    @test cache              == nothing
+    @test results.converged  == true
+    @test report.totalcost   == 16
 
     params = fitted_params(model, results)
     @test params.cluster_centers == [1.0 10.0; 2.0 2.0]
