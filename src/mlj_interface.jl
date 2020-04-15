@@ -94,15 +94,20 @@ function MMI.fit(m::KMeans, verbosity::Int, X)
 
     # fit model and get results
     verbose = verbosity > 0  # Display fitting operations if verbosity > 0
-    fitresult = ParallelKMeans.kmeans(algo, DMatrix, m.k;
+    result = ParallelKMeans.kmeans(algo, DMatrix, m.k;
                                       n_threads = m.threads, k_init=m.k_init,
                                       max_iters=m.max_iters, tol=m.tol, init=m.init,
                                       verbose=verbose)
 
+    cluster_labels = MMI.categorical(1:m.k)
+    fitresult = (result.centers, cluster_labels, result.converged)
     cache = nothing
-    report = (cluster_centers=fitresult.centers, iterations=fitresult.iterations,
-              converged=fitresult.converged, totalcost=fitresult.totalcost,
-              labels=fitresult.assignments)
+
+    report = (cluster_centers=result.centers, iterations=result.iterations,
+              converged=result.converged, totalcost=result.totalcost,
+              assignments=result.assignments, labels=cluster_labels)
+
+
     """
     # TODO: warn users about non convergence
     if verbose & (!fitresult.converged)
@@ -114,16 +119,8 @@ end
 
 
 function MMI.fitted_params(model::KMeans, fitresult)
-    # extract what's relevant from `fitresult`
-    results, _, _ = fitresult  # unpack fitresult
-    centers = results.centers
-    converged = results.converged
-    iters = results.iterations
-    totalcost = results.totalcost
-
-    # then return as a NamedTuple
-    return (cluster_centers = centers, totalcost = totalcost,
-            iterations = iters, converged = converged)
+    # Centroids
+    return (cluster_centers = fitresult[1], )
 end
 
 
@@ -143,20 +140,36 @@ function MMI.transform(m::KMeans, fitresult, Xnew)
     end
 
     # Warn users if fitresult is from a `non-converged` fit
-    if !fitresult[end].converged
+    if !(fitresult[end])
         @warn "Failed to converge. Using last assignments to make transformations."
     end
 
-    # results from fitted model
-    results = fitresult[1]
-
     # use centroid matrix to assign clusters for new data
-    centroids = results.centers
+    centroids = fitresult[1]
     distances = Distances.pairwise(Distances.SqEuclidean(), DMatrix, centroids; dims=2)
-    preds = argmin.(eachrow(distances))
-    return MMI.table(reshape(preds, :, 1), prototype=Xnew)
+    #preds = argmin.(eachrow(distances))
+    return MMI.table(distances, prototype=Xnew)
 end
 
+
+function MMI.predict(m::KMeans, fitresult, Xnew)
+    locations, cluster_labels, _ = fitresult
+
+    Xarray = MMI.matrix(Xnew)
+    (n, p), k = size(Xarray), m.k
+
+    pred = zeros(Int, n)
+    @inbounds for i ∈ 1:n
+        minv = Inf
+        for j ∈ 1:k
+            curv    = Distances.evaluate(Distances.SqEuclidean(), view(Xarray, i, :), view(locations, :, j))
+            P       = curv < minv
+            pred[i] =    j * P + pred[i] * !P # if P is true --> j
+            minv    = curv * P +    minv * !P # if P is true --> curvalue
+        end
+    end
+    return cluster_labels[pred]
+end
 
 ####
 #### METADATA
@@ -176,6 +189,7 @@ MMI.metadata_pkg.(KMeans,
 MMI.metadata_model(KMeans,
     input   = MMI.Table(MMI.Continuous),
     output  = MMI.Table(MMI.Continuous),
+    target =  AbstractArray{<:MMI.Multiclass},
     weights = false,
     descr   = ParallelKMeans_Desc,
 	path	= "ParallelKMeans.KMeans")
