@@ -48,19 +48,23 @@ end
     X_test = table([10 1])
 
     model = KMeans(algo = :Lloyd, k=2)
-    results = fit(model, 0, X)
+    results, cache, report = fit(model, 0, X)
 
-    @test results[2]             == nothing
-    @test results[end].converged == true
-    @test results[end].totalcost == 16
+    @test cache              == nothing
+    @test results.converged  == true
+    @test report.totalcost   == 16
 
     params = fitted_params(model, results)
-    @test params.converged == true
-    @test params.totalcost == 16
+    @test params.cluster_centers == [1.0 10.0; 2.0 2.0]
 
     # Use trained model to cluster new data X_test
     preds = transform(model, results, X_test)
-    @test preds[:x1][1] == 2
+    @test preds[:x1][1] == 82.0
+    @test preds[:x2][1] == 1.0
+
+    # Make predictions on new data X_test with fitted params
+    yhat = predict(model, results, X_test)
+    @test yhat[1] == 2
 end
 
 
@@ -69,20 +73,24 @@ end
     X = table([1 2; 1 4; 1 0; 10 2; 10 4; 10 0])
     X_test = table([10 1])
 
-    model = KMeans(algo=:Hamerly, k=2)
-    results = fit(model, 0, X)
+    model = KMeans(algo = :Hamerly, k=2)
+    results, cache, report = fit(model, 0, X)
 
-    @test results[2]             == nothing
-    @test results[end].converged == true
-    @test results[end].totalcost == 16
+    @test cache              == nothing
+    @test results.converged  == true
+    @test report.totalcost   == 16
 
     params = fitted_params(model, results)
-    @test params.converged == true
-    @test params.totalcost == 16
+    @test params.cluster_centers == [1.0 10.0; 2.0 2.0]
 
     # Use trained model to cluster new data X_test
     preds = transform(model, results, X_test)
-    @test preds[:x1][1] == 2
+    @test preds[:x1][1] == 82.0
+    @test preds[:x2][1] == 1.0
+
+    # Make predictions on new data X_test with fitted params
+    yhat = predict(model, results, X_test)
+    @test yhat[1] == 2
 end
 
 
@@ -91,20 +99,24 @@ end
     X = table([1 2; 1 4; 1 0; 10 2; 10 4; 10 0])
     X_test = table([10 1])
 
-    model = KMeans(algo=:Elkan, k=2)
-    results = fit(model, 0, X)
+    model = KMeans(algo = :Elkan, k=2)
+    results, cache, report = fit(model, 0, X)
 
-    @test results[2]             == nothing
-    @test results[end].converged == true
-    @test results[end].totalcost == 16
+    @test cache              == nothing
+    @test results.converged  == true
+    @test report.totalcost   == 16
 
     params = fitted_params(model, results)
-    @test params.converged == true
-    @test params.totalcost == 16
+    @test params.cluster_centers == [1.0 10.0; 2.0 2.0]
 
     # Use trained model to cluster new data X_test
     preds = transform(model, results, X_test)
-    @test preds[:x1][1] == 2
+    @test preds[:x1][1] == 82.0
+    @test preds[:x2][1] == 1.0
+
+    # Make predictions on new data X_test with fitted params
+    yhat = predict(model, results, X_test)
+    @test yhat[1] == 2
 end
 
 
@@ -114,7 +126,7 @@ end
     X_test = table([10 1])
 
     model = KMeans(k=2, max_iters=1)
-    results = fit(model, 0, X)
+    results, cache, report = fit(model, 0, X)
 
     @test_logs (:warn, "Failed to converge. Using last assignments to make transformations.") transform(model, results, X_test)
 end
