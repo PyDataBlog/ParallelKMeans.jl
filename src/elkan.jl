@@ -236,21 +236,6 @@ function chunk_update_centroids(::Elkan, containers, centroids, X, r, idx)
     end
 end
 
-function collect_containers(alg::Elkan, containers, n_threads)
-    if n_threads == 1
-        @inbounds containers.centroids_new[end] .= containers.centroids_new[1] ./ containers.centroids_cnt[1]'
-    else
-        @inbounds containers.centroids_new[end] .= containers.centroids_new[1]
-        @inbounds containers.centroids_cnt[end] .= containers.centroids_cnt[1]
-        @inbounds for i in 2:n_threads
-            containers.centroids_new[end] .+= containers.centroids_new[i]
-            containers.centroids_cnt[end] .+= containers.centroids_cnt[i]
-        end
-
-        @inbounds containers.centroids_new[end] .= containers.centroids_new[end] ./ containers.centroids_cnt[end]'
-    end
-end
-
 function calculate_centroids_movement(alg::Elkan, containers, centroids)
     p = containers.p
     centroids_new = containers.centroids_new[end]
@@ -259,7 +244,6 @@ function calculate_centroids_movement(alg::Elkan, containers, centroids)
         p[i] = distance(centroids, centroids_new, i, i)
     end
 end
-
 
 function chunk_update_bounds(alg, containers, centroids, r, idx)
     p = containers.p

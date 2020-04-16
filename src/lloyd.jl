@@ -124,18 +124,3 @@ function chunk_update_centroids(::Lloyd, containers, centroids, X, r, idx)
 
     containers.J[idx] = J
 end
-
-function collect_containers(alg::Lloyd, containers, centroids, n_threads)
-    if n_threads == 1
-        @inbounds centroids .= containers.centroids_new[1] ./ containers.centroids_cnt[1]'
-    else
-        @inbounds containers.centroids_new[end] .= containers.centroids_new[1]
-        @inbounds containers.centroids_cnt[end] .= containers.centroids_cnt[1]
-        @inbounds for i in 2:n_threads
-            containers.centroids_new[end] .+= containers.centroids_new[i]
-            containers.centroids_cnt[end] .+= containers.centroids_cnt[i]
-        end
-
-        @inbounds centroids .= containers.centroids_new[end] ./ containers.centroids_cnt[end]'
-    end
-end

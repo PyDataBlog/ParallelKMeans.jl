@@ -73,23 +73,6 @@ function kmeans!(alg::Hamerly, containers, X, k;
     return KmeansResult(centroids, containers.labels, Float64[], Int[], Float64[], totalcost, niters, converged)
 end
 
-
-function collect_containers(alg::Hamerly, containers, n_threads)
-    if n_threads == 1
-        @inbounds containers.centroids_new[end] .= containers.centroids_new[1] ./ containers.centroids_cnt[1]'
-    else
-        @inbounds containers.centroids_new[end] .= containers.centroids_new[1]
-        @inbounds containers.centroids_cnt[end] .= containers.centroids_cnt[1]
-        @inbounds for i in 2:n_threads
-            containers.centroids_new[end] .+= containers.centroids_new[i]
-            containers.centroids_cnt[end] .+= containers.centroids_cnt[i]
-        end
-
-        @inbounds containers.centroids_new[end] .= containers.centroids_new[end] ./ containers.centroids_cnt[end]'
-    end
-end
-
-
 function create_containers(alg::Hamerly, k, nrow, ncol, n_threads)
     lng = n_threads + 1
     centroids_new = Vector{Array{Float64,2}}(undef, lng)
@@ -108,7 +91,7 @@ function create_containers(alg::Hamerly, k, nrow, ncol, n_threads)
 
     labels = zeros(Int, ncol)
 
-    # distance that centroid moved
+    # distance that centroid has moved
     p = Vector{Float64}(undef, k)
 
     # distance from the center to the closest other center
@@ -289,9 +272,9 @@ function chunk_update_bounds(alg::Hamerly, containers, r1, r2, pr1, pr2, r, idx)
         label = labels[i]
         ub[i] += 2*sqrt(abs(ub[i] * p[label])) + p[label]
         if r1 == label
-            lb[i] += pr2 - 2*sqrt(abs(pr2*lb[i]))
+            lb[i] = lb[i] <= pr2 ? 0.0 : lb[i] + pr2 - 2*sqrt(abs(pr2*lb[i]))
         else
-            lb[i] += pr1 - 2*sqrt(abs(pr1*lb[i]))
+            lb[i] = lb[i] <= pr1 ? 0.0 : lb[i] + pr1 - 2*sqrt(abs(pr1*lb[i]))
         end
     end
 end
