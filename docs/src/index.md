@@ -2,8 +2,13 @@
 
 ## Motivation
 
+<<<<<<< HEAD
 It's actually a funny story that led to the development of this package.
 What started off as a personal toy project trying to re-construct the K-Means algorithm in native Julia blew up after a heated discussion on the Julia Discourse forum when I asked for Julia optimization tips. Long story short, the Julia community is an amazing one! Andrey offered his help and together, we decided to push the speed limits of Julia with a parallel implementation of the most famous clustering algorithm. The initial results were mind blowing so we have decided to tidy up the implementation and share with the world as a maintained Julia package.
+=======
+It's actually a funny story led to the development of this package.
+What started off as a personal toy project trying to re-construct the K-Means algorithm in native Julia blew up after a heated discussion on the Julia Discourse forum when I asked for Julia optimization tips. Long story short, Julia community is an amazing one! Andrey offered his help and together, we decided to push the speed limits of Julia with a parallel implementation of the most famous clustering algorithm. The initial results were mind blowing so we have decided to tidy up the implementation and share with the world as a maintained Julia pacakge.
+>>>>>>> Initiated 0.1.5 release & doc cleanup
 
 Say hello to `ParallelKMeans`!
 
@@ -23,6 +28,22 @@ This implementation inherits this problem like every implementation does.
 As a result, it is useful in practice to restart it several times to get the correct results.
 
 ## Installation
+
+If you are using  Julia in the recommended [Juno IDE](https://junolab.org/), the number of threads is already set to the number of available CPU cores so multithreading enabled out of the box.
+For other IDEs, multithreading must be exported in your environment before launching the Julia REPL in the command line.
+
+*TIP*: One needs to navigate or point to the Julia executable file to be able to launch it in the command line.
+Enable multi threading on Mac/Linux systems via;
+
+```bash
+export JULIA_NUM_THREADS=n  # where n is the number of threads/cores
+```
+
+For Windows systems:
+
+```bash
+set JULIA_NUM_THREADS=n  # where n is the number of threads/cores
+```
 
 You can grab the latest stable version of this package from Julia registries by simply running;
 
@@ -60,6 +81,7 @@ git checkout experimental
 with Consistent Speedup](https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/ding15.pdf)
 - [ ] Implementation of [Geometric methods to accelerate k-means algorithm](http://cs.baylor.edu/~hamerly/papers/sdm2016_rysavy_hamerly.pdf).
 - [ ] Support for other distance metrics supported by [Distances.jl](https://github.com/JuliaStats/Distances.jl#supported-distances).
+- [ ] Implementation of [Yinyang K-Means](https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/ding15.pdf).
 - [ ] Native support for tabular data inputs outside of MLJModels' interface.
 - [ ] Refactoring and finalizaiton of API desgin.
 - [ ] GPU support.
@@ -101,14 +123,21 @@ r.iterations            # number of elapsed iterations
 r.converged             # whether the procedure converged
 ```
 
-### Supported KMeans algorithm variations
+### Supported KMeans algorithm variations and recommended use cases
 
+<<<<<<< HEAD
 - [Lloyd()](https://cs.nyu.edu/~roweis/csc2515-2006/readings/lloyd57.pdf)
 - [Hamerly()](https://www.researchgate.net/publication/220906984_Making_k-means_Even_Faster)
 - [Elkan()](https://www.aaai.org/Papers/ICML/2003/ICML03-022.pdf)
 - [Yinyang()](https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/ding15.pdf)
+=======
+- [Lloyd()](https://cs.nyu.edu/~roweis/csc2515-2006/readings/lloyd57.pdf)  - Default algorithm but only recommended for very small matrices (switch to `n_threads = 1` to avoid overhead).
+- [Hamerly()](https://www.researchgate.net/publication/220906984_Making_k-means_Even_Faster) - Useful in most cases. If uncertain about your use case, use this!
+- [Elkan()](https://www.aaai.org/Papers/ICML/2003/ICML03-022.pdf) - Recommended for high dimensional data.
+>>>>>>> Initiated 0.1.5 release & doc cleanup
 - [Geometric()](http://cs.baylor.edu/~hamerly/papers/sdm2016_rysavy_hamerly.pdf) - (Coming soon)
 - [MiniBatch()](https://www.eecs.tufts.edu/~dsculley/papers/fastkmeans.pdf) - (Coming soon)
+- [Yinyang](https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/ding15.pdf) - (Coming soon)
 
 ### Practical Usage Examples
 
