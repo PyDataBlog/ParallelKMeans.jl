@@ -38,13 +38,13 @@ pkg> add ParallelKMeans
 For the few (and selected) brave ones, one can simply grab the current experimental features by simply adding the experimental branch to your development environment after invoking the package manager with `]`:
 
 ```julia
-pkg> dev git@github.com:PyDataBlog/ParallelKMeans.jl.git
+pkg> add ParallelKMeans#experimental
 ```
 
-Don't forget to checkout the experimental branch and you are good to go with bleeding edge features and breaks!
+To revert to a stable version, you can simply run:
 
-```bash
-git checkout experimental
+```julia
+pkg> free ParallelKMeans
 ```
 
 _________________________________________________________________________________________________________
