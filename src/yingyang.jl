@@ -30,10 +30,13 @@ function kmeans!(alg::YingYang, containers, X, k;
     centroids = init == nothing ? smart_init(X, k, n_threads, init=k_init).centroids : deepcopy(init)
 
     # create initial groups of centers, step 1 in original paper
-    initialize(alg, containers, centroids)
+    initialize(alg, containers, centroids, n_threads)
     # construct initial bounds, step 2
     @parallelize n_threads ncol chunk_initialize(alg, containers, centroids, X)
     collect_containers(alg, containers, n_threads)
+
+    # update centers and calculate drifts. Step 3.1 of the original paper.
+    calculate_centroids_movement(alg, containers, centroids)
 
     converged = false
     niters = 0
@@ -42,14 +45,7 @@ function kmeans!(alg::YingYang, containers, X, k;
     # Update centroids & labels with closest members until convergence
     while niters < max_iters
         niters += 1
-        # update centers and calculate drifts. Step 3.1 of the original paper.
-        calculate_centroids_movement(alg, containers, centroids)
-
         J = sum(containers.ub)
-
-        # Core calculation of the YingYang, 3.2-3.3 steps of the original paper
-        @parallelize n_threads ncol chunk_update_centroids(alg, containers, centroids, X)
-
         if verbose
             # Show progress and terminate if J stopped decreasing.
             println("Iteration $niters: Jclust = $J")
@@ -60,8 +56,14 @@ function kmeans!(alg::YingYang, containers, X, k;
             converged = true
             break
         end
-
         J_previous = J
+
+        # Core calculation of the YingYang, 3.2-3.3 steps of the original paper
+        @parallelize n_threads ncol chunk_update_centroids(alg, containers, centroids, X)
+        collect_containers(alg, containers, n_threads)
+
+        # update centers and calculate drifts. Step 3.1 of the original paper.
+        calculate_centroids_movement(alg, containers, centroids)
     end
 
     @parallelize n_threads ncol sum_of_squares(containers, X, containers.labels, centroids)
@@ -88,6 +90,11 @@ function create_containers(alg::YingYang, k, nrow, ncol, n_threads)
         centroids_cnt[i] = zeros(k)
     end
 
+    mask = Vector{Vector{Bool}}(undef, n_threads)
+    for i in 1:n_threads
+        mask[i] = Vector{Bool}(undef, k)
+    end
+
     if alg.auto
         t = k ÷ alg.divider
         t = t < 1 ? 1 : t
@@ -108,7 +115,10 @@ function create_containers(alg::YingYang, k, nrow, ncol, n_threads)
     p = Vector{Float64}(undef, k)
 
     # Group indices
-    groups = Vector{UnitRange{Int64}}(undef, t)
+    groups = Vector{UnitRange{Int}}(undef, t)
+
+    # mapping between cluster center and group
+    indices = Vector{Int}(undef, k)
 
     # total_sum_calculation
     sum_of_squares = Vector{Float64}(undef, n_threads)
@@ -122,8 +132,24 @@ function create_containers(alg::YingYang, k, nrow, ncol, n_threads)
         ub = ub,
         lb = lb,
         groups = groups,
-        gd = gd
+        indices = indices,
+        gd = gd,
+        mask = mask
     )
+end
+
+function initialize(alg::YingYang, containers, centroids, n_threads)
+    groups = containers.groups
+    indices = containers.indices
+    if length(groups) == 1
+        groups[1] = axes(centroids, 2)
+        indices .= 1
+    else
+        init_clusters = kmeans(Lloyd(), centroids, length(groups), max_iters = 5, tol = 1e-10, verbose = false)
+        perm = sortperm(init_clusters.assignments)
+        indices .= init_clusters.assignments[perm]
+        groups .= rangify(indices)
+    end
 end
 
 function chunk_initialize(alg::YingYang, containers, centroids, X, r, idx)
@@ -148,58 +174,64 @@ function calculate_centroids_movement(alg::YingYang, containers, centroids)
     @inbounds for (gi, ri) in enumerate(groups)
         max_drift = -1.0
         for i in ri
-            p[i] = distance(centroids, centroids_new, i, i)
+            p[i] = sqrt(distance(centroids, centroids_new, i, i))
             max_drift = p[i] > max_drift ? p[i] : max_drift
+
+            # Should do it more elegantly
+            for j in axes(centroids, 1)
+                centroids[j, i] = centroids_new[j, i]
+            end
         end
         gd[gi] = max_drift
     end
 end
 
 function chunk_update_centroids(alg, containers, centroids, X, r, idx)
-        # unpack containers for easier manipulations
-        centroids_new = containers.centroids_new[idx]
-        centroids_cnt = containers.centroids_cnt[idx]
-        mask = containers.mask[idx]
-        labels = containers.labels
-        p = containers.p
-        lb = containers.lb
-        ub = containers.ub
-        gd = containers.gd
-        groups = containers.groups
-        indices = containers.indices
-        t = length(groups)
+    # unpack containers for easier manipulations
+    centroids_new = containers.centroids_new[idx]
+    centroids_cnt = containers.centroids_cnt[idx]
+    mask = containers.mask[idx]
+    labels = containers.labels
+    p = containers.p
+    lb = containers.lb
+    ub = containers.ub
+    gd = containers.gd
+    groups = containers.groups
+    indices = containers.indices
+    t = length(groups)
 
-        @inbounds for i in r
-            # update bounds
-            # TODO: remove comment after becnhmarking
-            # update_bounds(alg, ub, lb, labels, p, groups, gd, i)
+    @inbounds for i in r
+        # update bounds
+        # TODO: remove comment after becnhmarking
+        # update_bounds(alg, ub, lb, labels, p, groups, gd, i)
 
-            ub[i] += p[labels[i]]
-            ubx = ub[i]
-            lbx = Inf
-            for gi in 1:length(groups)
-                lb[gi, i] -= gd[gi]
-                lbx = lb[gi, i] < lbx ? lb[g, i] : lbx
-            end
+        ub[i] += p[labels[i]]
+        ubx = ub[i]
+        lbx = Inf
+        for gi in 1:length(groups)
+            lb[gi, i] -= gd[gi]
+            lbx = lb[gi, i] < lbx ? lb[gi, i] : lbx
+        end
 
-            # Global filtering
-            ubx <= lbx && continue
+        # Global filtering
+        ubx <= lbx && continue
 
-            # tighten upper bound
-            label = labels[i]
-            ubx = sqrt(distance(X, centroids, i, label))
-            ub[i] = ubx
-            ubx <= lbx && continue
+        # tighten upper bound
+        label = labels[i]
+        ubx = sqrt(distance(X, centroids, i, label))
+        ub[i] = ubx
+        ubx <= lbx && continue
 
-            # local filter group which contains current label
-            ubx2 = ubx^2
-            old_label = label
-            orig_group_id = indices[label]
-            ri = groups[orig_group_id]
-            new_lb = lb[orig_group_id, i]
-            old_lb = new_lb + gd[orig_group_id]
-            mask .= false
+        # local filter group which contains current label
+        mask .= false
+        ubx2 = ubx^2
+        orig_group_id = indices[label]
+        new_lb = lb[orig_group_id, i]
+        old_label = label
+        if ubx >= new_lb
             mask[old_label] = true
+            ri = groups[orig_group_id]
+            old_lb = new_lb + gd[orig_group_id] # recovering initial value of lower bound
             for c in ri
                 ((c == old_label) | (ubx < old_lb - p[c])) && continue
                 mask[c] = true
@@ -222,57 +254,61 @@ function chunk_update_centroids(alg, containers, centroids, X, r, idx)
                 end
             end
             lb[orig_group_id, i] = new_lb
+        end
 
-            for gi in 1:t
-                gi == orig_group_id && continue
-                # Group filtering
-                ubx <= lb[gi, i] && continue
-                old_lb = lb[gi, i] + gd[di]
-                ri = groups[gi]
-                for c in ri
-                    # local filtering
-                    ubx < old_lb - p[c] && continue
-                    mask[c] = true
-                    dist = distance(X, centroids, i, c)
-                    if dist < ubx2
-                        # closest canter was in previous cluster
-                        if indices[label] != gi
-                            lb[indice[label]] = ubx
-                        end
-                        ubx2 = dist
-                        ubx = sqrt(dist)
-
-                        label = c
-
+        # Group filtering, now we know that previous best estimate of lower
+        # bound was already claculated
+        for gi in 1:t
+            gi == orig_group_id && continue
+            # Group filtering
+            ubx < lb[gi, i] && continue
+            new_lb = lb[gi, i]
+            old_lb = new_lb + gd[gi]
+            ri = groups[gi]
+            for c in ri
+                # local filtering
+                ubx < old_lb - p[c] && continue
+                mask[c] = true
+                dist = distance(X, centroids, i, c)
+                if dist < ubx2
+                    # closest canter was in previous cluster
+                    if indices[label] != gi
+                        lb[indices[label], i] = ubx
+                    else
+                        new_lb = ubx
                     end
+                    ubx2 = dist
+                    ubx = sqrt(dist)
+                    label = c
                 end
-                lb[gi, i] = lbg
             end
-            ub[i] = ubx
-            labels[i] = label
 
-            # m ← max(s(a(i))/2, l(i))
-            m = max(s[labels[i]], lb[i])
-            # first bound test
-            if ub[i] > m
-                # tighten upper bound
-                label = labels[i]
-                ub[i] = distance(X, centroids, i, label)
-                # second bound test
-                if ub[i] > m
-                    label_new = point_all_centers!(containers, centroids, X, i)
-                    if label != label_new
-                        labels[i] = label_new
-                        centroids_cnt[label_new] += 1
-                        centroids_cnt[label] -= 1
-                        for j in axes(X, 1)
-                            centroids_new[j, label_new] += X[j, i]
-                            centroids_new[j, label] -= X[j, i]
-                        end
-                    end
+            new_lb2 = new_lb^2
+            for c in ri
+                mask[c] && continue
+                new_lb < old_lb - p[c] && continue
+                dist = distance(X, centroids, i, c)
+                if dist < newlb2
+                    new_lb2 = dist
+                    new_lb = sqrt(new_lb2)
                 end
+            end
+
+            lb[gi, i] = new_lb
+        end
+
+        # Assignment
+        ub[i] = ubx
+        if old_label != label
+            labels[i] = label
+            centroids_cnt[label] += 1
+            centroids_cnt[old_label] -= 1
+            for j in axes(X, 1)
+                centroids_new[j, label] += X[j, i]
+                centroids_new[j, old_label] -= X[j, i]
             end
         end
+    end
 end
 
 """
@@ -284,7 +320,6 @@ function point_all_centers!(alg::YingYang, containers, centroids, X, i)
     ub = containers.ub
     lb = containers.lb
     labels = containers.labels
-    labels2 = containers.labels2
     groups = containers.groups
 
     label = 1
@@ -306,75 +341,66 @@ function point_all_centers!(alg::YingYang, containers, centroids, X, i)
             end
         end
         if group_min_distance < min_distance
-            lb[group_id, i] = min_distance
-            lb[gi, i] = group_min_distance2
+            lb[group_id, i] = sqrt(min_distance)
+            lb[gi, i] = sqrt(group_min_distance2)
             group_id = gi
             min_distance = group_min_distance
             label = group_label
         else
-            lb[gi, i] = group_min_distance
+            lb[gi, i] = sqrt(group_min_distance)
         end
     end
 
-    ub[i] = min_distance
+    ub[i] = sqrt(min_distance)
     labels[i] = label
 
     return label
 end
 
-@inline function update_bounds(alg::YingYang, ub, lb, labels, p, groups, gd, i)
-    # Since bounds are squred distance, `sqrt` is used to make corresponding estimation, unlike
-    # the original paper, where usual metric is used.
-    #
-    # If `u` is upper bound and `a` is `labels` then
-    #
-    # `u[i] -> u[i] + p[a[i]]`
-    #
-    # then squared distance is
-    #
-    # `u[i]^2 -> (u[i] + p[a[i]])^2 = u[i]^2 + 2 p[a[i]] u[i] + p[a[i]]^2`
-    #
-    # Taking into account that in our noations `p^2 -> p`, `u^2 -> ub` we obtain
-    #
-    # `ub[i] -> ub[i] + 2 sqrt(p[a[i]] ub[i]) + p[a[i]]`
-    #
-    # The same applies to the lower bounds.
-
-    # TODO: another version of this function for all other metrics
-    ub[i] += 2*sqrt(abs(ub[i] * p[labels[i]])) + p[labels[i]]
-    for gi in 1:length(groups)
-        lb[gi, i] += gd[gi] - 2*sqrt(abs(gd[gi] * lb[gi, i]))
+# I believe there should be oneliner for it
+function rangify(x)
+    res = UnitRange{Int}[]
+    id = 1
+    val = x[1]
+    for i in 2:length(x)
+        if x[i] != val
+            push!(res, id:i-1)
+            id = i
+            val = x[i]
+        end
     end
-end
+    push!(res, id:length(x))
 
+    return res
+end
 
 ## Misc
 # Borrowed from https://github.com/JuliaLang/julia/pull/21598/files
 
 # swap columns i and j of a, in-place
-function swapcols!(a, i, j)
-    i == j && return
-    for k in axes(a,1)
-        @inbounds a[k,i], a[k,j] = a[k,j], a[k,i]
-    end
-end
-
-# like permute!! applied to each row of a, in-place in a (overwriting p).
-function permutecols!!(a, p)
-    count = 0
-    start = 0
-    while count < length(p)
-        ptr = start = findnext(!iszero, p, start+1)::Int
-        next = p[start]
-        count += 1
-        while next != start
-            swapcols!(a, ptr, next)
-            p[ptr] = 0
-            ptr = next
-            next = p[next]
-            count += 1
-        end
-        p[ptr] = 0
-    end
-    a
-end
+# function swapcols!(a, i, j)
+#     i == j && return
+#     for k in axes(a,1)
+#         @inbounds a[k,i], a[k,j] = a[k,j], a[k,i]
+#     end
+# end
+#
+# # like permute!! applied to each row of a, in-place in a (overwriting p).
+# function permutecols!!(a, p)
+#     count = 0
+#     start = 0
+#     while count < length(p)
+#         ptr = start = findnext(!iszero, p, start+1)::Int
+#         next = p[start]
+#         count += 1
+#         while next != start
+#             swapcols!(a, ptr, next)
+#             p[ptr] = 0
+#             ptr = next
+#             next = p[next]
+#             count += 1
+#         end
+#         p[ptr] = 0
+#     end
+#     a
+# end
