@@ -12,10 +12,10 @@ include("kmeans.jl")
 include("lloyd.jl")
 include("hamerly.jl")
 include("elkan.jl")
-include("yingyang.jl")
+include("yinyang.jl")
 include("mlj_interface.jl")
 
 export kmeans
-export Lloyd, Hamerly, Elkan, YingYang
+export Lloyd, Hamerly, Elkan, Yinyang
 
 end # module

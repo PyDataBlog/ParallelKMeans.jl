@@ -1,7 +1,7 @@
 """
-    YingYang()
+    Yinyang()
 
-YingYang algorithm implementation, based on "Yufei Ding et al. 2015. Yinyang K-Means: A Drop-In
+Yinyang algorithm implementation, based on "Yufei Ding et al. 2015. Yinyang K-Means: A Drop-In
 Replacement of the Classic K-Means with Consistent Speedup. Proceedings of the 32nd International
 Conference on Machine Learning, ICML 2015, Lille, France, 6-11 July 2015"
 
@@ -13,24 +13,24 @@ It can be used directly in `kmeans` function
 ```julia
 X = rand(30, 100_000)   # 100_000 random points in 30 dimensions
 
-kmeans(YingYang(), X, 3) # 3 clusters, YingYang algorithm
+kmeans(Yinyang(), X, 3) # 3 clusters, Yinyang algorithm
 ```
 
-`YingYang` supports following arguments:
+`Yinyang` supports following arguments:
 `auto`: `Bool`, indicates whether to perform automated or manual grouping
 `group_size`: `Int`, estimation of average number of clusters per group. Lower numbers
 corresponds to higher calculation speed and higher memory consumption and vice versa.
 """
-struct YingYang <: AbstractKMeansAlg
+struct Yinyang <: AbstractKMeansAlg
     auto::Bool
     group_size::Int
 end
 
-YingYang() = YingYang(true, 7)
-YingYang(auto::Bool) = YingYang(auto, 7)
-YingYang(group_size::Int) = YingYang(true, group_size)
+Yinyang() = Yinyang(true, 7)
+Yinyang(auto::Bool) = Yinyang(auto, 7)
+Yinyang(group_size::Int) = Yinyang(true, group_size)
 
-function kmeans!(alg::YingYang, containers, X, k;
+function kmeans!(alg::Yinyang, containers, X, k;
                 n_threads = Threads.nthreads(),
                 k_init = "k-means++", max_iters = 300,
                 tol = 1e-6, verbose = false, init = nothing)
@@ -67,7 +67,7 @@ function kmeans!(alg::YingYang, containers, X, k;
         J_previous = J
 
         # push!(containers.debug, [0, 0, 0])
-        # Core calculation of the YingYang, 3.2-3.3 steps of the original paper
+        # Core calculation of the Yinyang, 3.2-3.3 steps of the original paper
         @parallelize n_threads ncol chunk_update_centroids(alg, containers, centroids, X)
         collect_containers(alg, containers, n_threads)
 
@@ -90,7 +90,7 @@ function kmeans!(alg::YingYang, containers, X, k;
     return KmeansResult(centroids, containers.labels, Float64[], Int[], Float64[], totalcost, niters, converged)
 end
 
-function create_containers(alg::YingYang, k, nrow, ncol, n_threads)
+function create_containers(alg::Yinyang, k, nrow, ncol, n_threads)
     lng = n_threads + 1
     centroids_new = Vector{Array{Float64,2}}(undef, lng)
     centroids_cnt = Vector{Vector{Int}}(undef, lng)
@@ -151,7 +151,7 @@ function create_containers(alg::YingYang, k, nrow, ncol, n_threads)
     )
 end
 
-function initialize(alg::YingYang, containers, centroids, n_threads)
+function initialize(alg::Yinyang, containers, centroids, n_threads)
     groups = containers.groups
     indices = containers.indices
     if length(groups) == 1
@@ -165,7 +165,7 @@ function initialize(alg::YingYang, containers, centroids, n_threads)
     end
 end
 
-function chunk_initialize(alg::YingYang, containers, centroids, X, r, idx)
+function chunk_initialize(alg::Yinyang, containers, centroids, X, r, idx)
     centroids_cnt = containers.centroids_cnt[idx]
     centroids_new = containers.centroids_new[idx]
 
@@ -178,7 +178,7 @@ function chunk_initialize(alg::YingYang, containers, centroids, X, r, idx)
     end
 end
 
-function calculate_centroids_movement(alg::YingYang, containers, centroids)
+function calculate_centroids_movement(alg::Yinyang, containers, centroids)
     p = containers.p
     groups = containers.groups
     gd = containers.gd
@@ -341,7 +341,7 @@ end
 
 Calculates new labels and upper and lower bounds for all points.
 """
-function point_all_centers!(alg::YingYang, containers, centroids, X, i)
+function point_all_centers!(alg::Yinyang, containers, centroids, X, i)
     ub = containers.ub
     lb = containers.lb
     labels = containers.labels

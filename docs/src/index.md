@@ -106,7 +106,7 @@ r.converged             # whether the procedure converged
 - [Lloyd()](https://cs.nyu.edu/~roweis/csc2515-2006/readings/lloyd57.pdf)
 - [Hamerly()](https://www.researchgate.net/publication/220906984_Making_k-means_Even_Faster)
 - [Elkan()](https://www.aaai.org/Papers/ICML/2003/ICML03-022.pdf)
-- [YingYang()](https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/ding15.pdf)
+- [Yinyang()](https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/ding15.pdf)
 - [Geometric()](http://cs.baylor.edu/~hamerly/papers/sdm2016_rysavy_hamerly.pdf) - (Coming soon)
 - [MiniBatch()](https://www.eecs.tufts.edu/~dsculley/papers/fastkmeans.pdf) - (Coming soon)
 
@@ -181,7 +181,7 @@ ________________________________________________________________________________
 - 0.1.2 Added `Elkan` algorithm.
 - 0.1.3 Faster & optimized execution.
 - 0.1.4 Bug fixes
-- 0.1.5 Added `YingYang` algorithm.
+- 0.1.5 Added `Yinyang` algorithm.
 
 ## Contributing
 
