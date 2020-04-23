@@ -5,6 +5,9 @@ YingYang algorithm implementation, based on "Yufei Ding et al. 2015. Yinyang K-M
 Replacement of the Classic K-Means with Consistent Speedup. Proceedings of the 32nd International
 Conference on Machine Learning, ICML 2015, Lille, France, 6-11 July 2015"
 
+Generally it outperform `Hamerly` algorithm and has roughly the same time as `Elkan`
+algorithm with much lower memory consumption.
+
 It can be used directly in `kmeans` function
 
 ```julia
@@ -12,15 +15,20 @@ X = rand(30, 100_000)   # 100_000 random points in 30 dimensions
 
 kmeans(YingYang(), X, 3) # 3 clusters, YingYang algorithm
 ```
+
+`YingYang` supports following arguments:
+`auto`: `Bool`, indicates whether to perform automated or manual grouping
+`group_size`: `Int`, estimation of average number of clusters per group. Lower numbers
+corresponds to higher calculation speed and higher memory consumption and vice versa.
 """
 struct YingYang <: AbstractKMeansAlg
     auto::Bool
-    divider::Int
+    group_size::Int
 end
 
 YingYang() = YingYang(true, 7)
 YingYang(auto::Bool) = YingYang(auto, 7)
-YingYang(divider::Int) = YingYang(true, divider)
+YingYang(group_size::Int) = YingYang(true, group_size)
 
 function kmeans!(alg::YingYang, containers, X, k;
                 n_threads = Threads.nthreads(),
@@ -98,7 +106,7 @@ function create_containers(alg::YingYang, k, nrow, ncol, n_threads)
     end
 
     if alg.auto
-        t = k ÷ alg.divider
+        t = k ÷ alg.group_size
         t = t < 1 ? 1 : t
     else
         t = 1
