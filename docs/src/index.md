@@ -192,15 +192,17 @@ Currently, the benchmark speed tests are based on the search for optimal number 
 
 _________________________________________________________________________________________________________
 
-|1 million (ms)|100k (ms)|10k (ms)|1k (ms)|package                |language|
-|:------------:|:-------:|:------:|:-----:|:---------------------:|:------:|
-|    666840    |  34034  |709.049 |17.686 |     Clustering.jl     | Julia  |
-|    21730     |  2975   |163.771 | 6.444 | ParallelKMeans Lloyd  | Julia  |
-|    11784     |  1339   | 94.233 |  6.6  |ParallelKMeans Hamerly | Julia  |
-|    17591     |  1074   | 81.995 | 6.953 | ParallelKMeans Elkan  | Julia  |
-|   1430000    | 146000  |  5770  |  344  |    Sklearn Kmeans     | Python |
-|    30100     |  3750   |  613   |  201  |Sklearn MiniBatchKmeans| Python |
-|    218200    |  15510  | 733.7  | 19.47 |         Knor          |   R    |
+|1 million (ms)|100k (ms)|10k (ms)|1k (ms)|package                |language   |
+|:------------:|:-------:|:------:|:-----:|:---------------------:|:---------:|
+|    580079    |  47804  |882.486 |17.424 |     Clustering.jl     |   Julia   |
+|    238716    |  20224  | 721.43 |24.581 |        mlpack         |C++ Wrapper|
+|    22946     |  2844   |177.329 | 6.403 |         Lloyd         |   Julia   |
+|    11084     |  1160   | 96.67  | 6.459 |        Hamerly        |   Julia   |
+|    13773     |  1457   | 80.484 | 6.854 |         Elkan         |   Julia   |
+|   1430000    | 146000  |  5770  |  344  |    Sklearn Kmeans     |  Python   |
+|    30100     |  3750   |  613   |  201  |Sklearn MiniBatchKmeans|  Python   |
+|    218200    |  15510  | 733.7  | 19.47 |         Knor          |     R     |
+
 _________________________________________________________________________________________________________
 
 ## Release History
