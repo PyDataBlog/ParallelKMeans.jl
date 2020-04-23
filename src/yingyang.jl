@@ -18,8 +18,8 @@ struct YingYang <: AbstractKMeansAlg
     divider::Int
 end
 
-YingYang() = YingYang(true, 10)
-YingYang(auto::Bool) = YingYang(auto, 10)
+YingYang() = YingYang(true, 7)
+YingYang(auto::Bool) = YingYang(auto, 7)
 YingYang(divider::Int) = YingYang(true, divider)
 
 function kmeans!(alg::YingYang, containers, X, k;
@@ -58,6 +58,7 @@ function kmeans!(alg::YingYang, containers, X, k;
         end
         J_previous = J
 
+        # push!(containers.debug, [0, 0, 0])
         # Core calculation of the YingYang, 3.2-3.3 steps of the original paper
         @parallelize n_threads ncol chunk_update_centroids(alg, containers, centroids, X)
         collect_containers(alg, containers, n_threads)
@@ -77,6 +78,7 @@ function kmeans!(alg::YingYang, containers, X, k;
     # TODO empty placeholder vectors should be calculated
     # TODO Float64 type definitions is too restrictive, should be relaxed
     # especially during GPU related development
+    # return KmeansResult(centroids, containers.labels, Float64[], Int[], Float64[], totalcost, niters, converged), containers
     return KmeansResult(centroids, containers.labels, Float64[], Int[], Float64[], totalcost, niters, converged)
 end
 
@@ -123,6 +125,8 @@ function create_containers(alg::YingYang, k, nrow, ncol, n_threads)
     # total_sum_calculation
     sum_of_squares = Vector{Float64}(undef, n_threads)
 
+    # debug = []
+
     return (
         centroids_new = centroids_new,
         centroids_cnt = centroids_cnt,
@@ -134,7 +138,8 @@ function create_containers(alg::YingYang, k, nrow, ncol, n_threads)
         groups = groups,
         indices = indices,
         gd = gd,
-        mask = mask
+        mask = mask,
+        # debug = debug
     )
 end
 
@@ -215,6 +220,7 @@ function chunk_update_centroids(alg, containers, centroids, X, r, idx)
 
         # Global filtering
         ubx <= lbx && continue
+        # containers.debug[end][1] += 1 # number of misses
 
         # tighten upper bound
         label = labels[i]
@@ -232,21 +238,26 @@ function chunk_update_centroids(alg, containers, centroids, X, r, idx)
             mask[old_label] = true
             ri = groups[orig_group_id]
             old_lb = new_lb + gd[orig_group_id] # recovering initial value of lower bound
+            new_lb2 = Inf
             for c in ri
                 ((c == old_label) | (ubx < old_lb - p[c])) && continue
                 mask[c] = true
+                # containers.debug[end][2] += 1 # local filter update
                 dist = distance(X, centroids, i, c)
                 if dist < ubx2
-                    new_lb = ubx
+                    new_lb2 = ubx2
                     ubx2 = dist
                     ubx = sqrt(dist)
                     label = c
+                elseif dist < new_lb2
+                    new_lb2 = dist
                 end
             end
-            new_lb2 = new_lb^2
+            new_lb = sqrt(new_lb2)
             for c in ri
                 mask[c] && continue
                 new_lb < old_lb - p[c] && continue
+                # containers.debug[end][3] += 1 # lower bound update
                 dist = distance(X, centroids, i, c)
                 if dist < new_lb2
                     new_lb2 = dist
@@ -264,31 +275,37 @@ function chunk_update_centroids(alg, containers, centroids, X, r, idx)
             ubx < lb[gi, i] && continue
             new_lb = lb[gi, i]
             old_lb = new_lb + gd[gi]
+            new_lb2 = Inf
             ri = groups[gi]
             for c in ri
                 # local filtering
                 ubx < old_lb - p[c] && continue
+                # containers.debug[end][2] += 1 # local filter update
                 mask[c] = true
                 dist = distance(X, centroids, i, c)
                 if dist < ubx2
-                    # closest canter was in previous cluster
+                    # closest center was in previous cluster
                     if indices[label] != gi
                         lb[indices[label], i] = ubx
                     else
                         new_lb = ubx
                     end
+                    new_lb2 = ubx2
                     ubx2 = dist
                     ubx = sqrt(dist)
                     label = c
+                elseif dist < new_lb2
+                    new_lb2 = dist
                 end
             end
 
-            new_lb2 = new_lb^2
+            new_lb = sqrt(new_lb2)
             for c in ri
                 mask[c] && continue
                 new_lb < old_lb - p[c] && continue
+                # containers.debug[end][3] += 1 # lower bound update
                 dist = distance(X, centroids, i, c)
-                if dist < newlb2
+                if dist < new_lb2
                     new_lb2 = dist
                     new_lb = sqrt(new_lb2)
                 end
