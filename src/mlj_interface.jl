@@ -154,6 +154,7 @@ function MMI.predict(m::KMeans, fitresult, Xnew)
     locations, cluster_labels, _ = fitresult
 
     Xarray = MMI.matrix(Xnew)
+    # TODO: Switch to non allocation method.
     (n, p), k = size(Xarray), m.k
 
     pred = zeros(Int, n)
