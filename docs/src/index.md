@@ -2,13 +2,8 @@
 
 ## Motivation
 
-<<<<<<< HEAD
-It's actually a funny story that led to the development of this package.
-What started off as a personal toy project trying to re-construct the K-Means algorithm in native Julia blew up after a heated discussion on the Julia Discourse forum when I asked for Julia optimization tips. Long story short, the Julia community is an amazing one! Andrey offered his help and together, we decided to push the speed limits of Julia with a parallel implementation of the most famous clustering algorithm. The initial results were mind blowing so we have decided to tidy up the implementation and share with the world as a maintained Julia package.
-=======
 It's actually a funny story led to the development of this package.
 What started off as a personal toy project trying to re-construct the K-Means algorithm in native Julia blew up after a heated discussion on the Julia Discourse forum when I asked for Julia optimization tips. Long story short, Julia community is an amazing one! Andrey offered his help and together, we decided to push the speed limits of Julia with a parallel implementation of the most famous clustering algorithm. The initial results were mind blowing so we have decided to tidy up the implementation and share with the world as a maintained Julia pacakge.
->>>>>>> Initiated 0.1.5 release & doc cleanup
 
 Say hello to `ParallelKMeans`!
 
@@ -125,16 +120,9 @@ r.converged             # whether the procedure converged
 
 ### Supported KMeans algorithm variations and recommended use cases
 
-<<<<<<< HEAD
-- [Lloyd()](https://cs.nyu.edu/~roweis/csc2515-2006/readings/lloyd57.pdf)
-- [Hamerly()](https://www.researchgate.net/publication/220906984_Making_k-means_Even_Faster)
-- [Elkan()](https://www.aaai.org/Papers/ICML/2003/ICML03-022.pdf)
-- [Yinyang()](https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/ding15.pdf)
-=======
 - [Lloyd()](https://cs.nyu.edu/~roweis/csc2515-2006/readings/lloyd57.pdf)  - Default algorithm but only recommended for very small matrices (switch to `n_threads = 1` to avoid overhead).
 - [Hamerly()](https://www.researchgate.net/publication/220906984_Making_k-means_Even_Faster) - Useful in most cases. If uncertain about your use case, use this!
 - [Elkan()](https://www.aaai.org/Papers/ICML/2003/ICML03-022.pdf) - Recommended for high dimensional data.
->>>>>>> Initiated 0.1.5 release & doc cleanup
 - [Geometric()](http://cs.baylor.edu/~hamerly/papers/sdm2016_rysavy_hamerly.pdf) - (Coming soon)
 - [MiniBatch()](https://www.eecs.tufts.edu/~dsculley/papers/fastkmeans.pdf) - (Coming soon)
 - [Yinyang](https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/ding15.pdf) - (Coming soon)
