@@ -63,6 +63,7 @@ ________________________________________________________________________________
 Currently, this package is benchmarked against similar implementations in both Python, R, and Julia. All reproducible benchmarks can be found in [ParallelKMeans/extras](https://github.com/PyDataBlog/ParallelKMeans.jl/tree/master/extras) directory.
 
 ![benchmark_image.png](docs/src/benchmark_image.png)
+_________________________________________________________________________________________________________
 
 ### License
 
