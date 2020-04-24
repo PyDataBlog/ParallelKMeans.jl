@@ -159,3 +159,19 @@ function kmeans(alg, design_matrix, k;
                     k_init = k_init, max_iters = max_iters, tol = tol,
                     verbose = verbose, init = init)
 end
+
+
+function collect_containers(::AbstractKMeansAlg, containers, n_threads)
+    if n_threads == 1
+        @inbounds containers.centroids_new[end] .= containers.centroids_new[1] ./ containers.centroids_cnt[1]'
+    else
+        @inbounds containers.centroids_new[end] .= containers.centroids_new[1]
+        @inbounds containers.centroids_cnt[end] .= containers.centroids_cnt[1]
+        @inbounds for i in 2:n_threads
+            containers.centroids_new[end] .+= containers.centroids_new[i]
+            containers.centroids_cnt[end] .+= containers.centroids_cnt[i]
+        end
+
+        @inbounds containers.centroids_new[end] .= containers.centroids_new[end] ./ containers.centroids_cnt[end]'
+    end
+end

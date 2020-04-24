@@ -56,11 +56,14 @@ git checkout experimental
 - [X] Implementation of [Hamerly implementation](https://www.researchgate.net/publication/220906984_Making_k-means_Even_Faster).
 - [X] Interface for inclusion in Alan Turing Institute's [MLJModels](https://github.com/alan-turing-institute/MLJModels.jl#who-is-this-repo-for).
 - [X] Full Implementation of Triangle inequality based on [Elkan - 2003 Using the Triangle Inequality to Accelerate K-Means"](https://www.aaai.org/Papers/ICML/2003/ICML03-022.pdf).
+- [X] Implementation of [Yinyang K-Means: A Drop-In Replacement of the Classic K-Means
+with Consistent Speedup](https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/ding15.pdf)
 - [ ] Implementation of [Geometric methods to accelerate k-means algorithm](http://cs.baylor.edu/~hamerly/papers/sdm2016_rysavy_hamerly.pdf).
 - [ ] Support for other distance metrics supported by [Distances.jl](https://github.com/JuliaStats/Distances.jl#supported-distances).
 - [ ] Native support for tabular data inputs outside of MLJModels' interface.
 - [ ] Refactoring and finalizaiton of API desgin.
 - [ ] GPU support.
+- [ ] Distributed calculations support.
 - [ ] Implementation of other K-Means algorithm variants based on recent literature.
 - [ ] Optimization of code base.
 - [ ] Improved Documentation
@@ -103,6 +106,7 @@ r.converged             # whether the procedure converged
 - [Lloyd()](https://cs.nyu.edu/~roweis/csc2515-2006/readings/lloyd57.pdf)
 - [Hamerly()](https://www.researchgate.net/publication/220906984_Making_k-means_Even_Faster)
 - [Elkan()](https://www.aaai.org/Papers/ICML/2003/ICML03-022.pdf)
+- [Yinyang()](https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/ding15.pdf)
 - [Geometric()](http://cs.baylor.edu/~hamerly/papers/sdm2016_rysavy_hamerly.pdf) - (Coming soon)
 - [MiniBatch()](https://www.eecs.tufts.edu/~dsculley/papers/fastkmeans.pdf) - (Coming soon)
 
@@ -174,8 +178,10 @@ ________________________________________________________________________________
 
 - 0.1.0 Initial release.
 - 0.1.1 Added interface for MLJ.
-- 0.1.2 Added Elkan algorithm.
+- 0.1.2 Added `Elkan` algorithm.
 - 0.1.3 Faster & optimized execution.
+- 0.1.4 Bug fixes
+- 0.1.5 Added `Yinyang` algorithm.
 
 ## Contributing
 
