@@ -120,9 +120,9 @@ r.converged             # whether the procedure converged
 ### Supported KMeans algorithm variations and recommended use cases
 
 - [Lloyd()](https://cs.nyu.edu/~roweis/csc2515-2006/readings/lloyd57.pdf)  - Default algorithm but only recommended for very small matrices (switch to `n_threads = 1` to avoid overhead).
-- [Hamerly()](https://www.researchgate.net/publication/220906984_Making_k-means_Even_Faster) - Useful in most cases. If uncertain about your use case, try this!
+- [Hamerly()](https://www.researchgate.net/publication/220906984_Making_k-means_Even_Faster) - Hamerly is good for moderate number of clusters (< 50?) and moderate dimensions (<100?).
 - [Elkan()](https://www.aaai.org/Papers/ICML/2003/ICML03-022.pdf) - Recommended for high dimensional data.
-- [Yinyang()](https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/ding15.pdf) - An excellent choice for most cases. Swiss blade for many use cases.
+- [Yinyang()](https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/ding15.pdf) - Recommended for large dimensions and/or large number of clusters.
 - [Geometric()](http://cs.baylor.edu/~hamerly/papers/sdm2016_rysavy_hamerly.pdf) - (Coming soon)
 - [MiniBatch()](https://www.eecs.tufts.edu/~dsculley/papers/fastkmeans.pdf) - (Coming soon)
 
@@ -179,16 +179,17 @@ Currently, the benchmark speed tests are based on the search for optimal number 
 
 _________________________________________________________________________________________________________
 
-|1 million (ms)|100k (ms)|10k (ms)|1k (ms)|package                |language   |
-|:------------:|:-------:|:------:|:-----:|:---------------------:|:---------:|
-|    580079    |  47804  |882.486 |17.424 |     Clustering.jl     |   Julia   |
-|    238716    |  20224  | 721.43 |24.581 |        mlpack         |C++ Wrapper|
-|    22946     |  2844   |177.329 | 6.403 |         Lloyd         |   Julia   |
-|    11084     |  1160   | 96.67  | 6.459 |        Hamerly        |   Julia   |
-|    13773     |  1457   | 80.484 | 6.854 |         Elkan         |   Julia   |
-|   1430000    | 146000  |  5770  |  344  |    Sklearn Kmeans     |  Python   |
-|    30100     |  3750   |  613   |  201  |Sklearn MiniBatchKmeans|  Python   |
-|    218200    |  15510  | 733.7  | 19.47 |         Knor          |     R     |
+|1 million sample (secs)|100k sample (secs)|10k sample (secs)|1k sample (secs)|package                |language   |
+|:---------------------:|:----------------:|:---------------:|:--------------:|:---------------------:|:---------:|
+|       538.53100       |     33.15700     |     0.74238     |    0.01710     |     Clustering.jl     |   Julia   |
+|       220.35700       |     20.93600     |     0.82430     |    0.02639     |        mlpack         |C++ Wrapper|
+|       20.55400        |     2.91300      |     0.17559     |    0.00609     |         Lloyd         |   Julia   |
+|       11.51800        |     0.96637      |     0.09990     |    0.00635     |        Hamerly        |   Julia   |
+|       14.01900        |     1.13100      |     0.07912     |    0.00646     |         Elkan         |   Julia   |
+|        9.97000        |     1.14600      |     0.10834     |    0.00704     |       YingYang        |   Julia   |
+|      1,430.00000      |    146.00000     |     5.77000     |    0.34400     |    Sklearn Kmeans     |  Python   |
+|       30.10000        |     3.75000      |     0.61300     |    0.20100     |Sklearn MiniBatchKmeans|  Python   |
+|       218.20000       |     15.51000     |     0.73370     |    0.01947     |         Knor          |     R     |
 
 _________________________________________________________________________________________________________
 
