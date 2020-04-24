@@ -9,6 +9,16 @@ ________________________________________________________________________________
 **Authors:** [Bernard Brenyah](https://www.linkedin.com/in/bbrenyah/) & [Andrey Oskin](https://www.linkedin.com/in/andrej-oskin-b2b03959/)
 _________________________________________________________________________________________________________
 
+<div align="center">
+    <b>Classic & Contemporary Variants Of K-Means In Sonic Mode<b>
+</div>
+
+<p align="center">
+  <img src="https://user-images.githubusercontent.com/2630519/80216880-70b60b00-8647-11ea-913b-7977ef1c156c.gif">
+</p>
+
+_________________________________________________________________________________________________________
+
 ## Table Of Content
 
 1. [Documentation](#Documentation)
@@ -51,7 +61,7 @@ ________________________________________________________________________________
 
 ### Features
 
-- Lightening fast implementation of Kmeans clustering algorithm even on a single thread in native Julia.
+- Lightening fast implementation of K-Means clustering algorithm even on a single thread in native Julia.
 - Support for multi-theading implementation of K-Means clustering algorithm.
 - Kmeans++ initialization for faster and better convergence.
 - Implementation of all the variants of the K-Means algorithm.

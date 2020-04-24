@@ -170,6 +170,9 @@ c = [ParallelKMeans.kmeans(X, i; tol=1e-6, max_iters=300, verbose=false).totalco
 Currently, this package is benchmarked against similar implementations in both Python and Julia. All reproducible benchmarks can be found in [ParallelKMeans/extras](https://github.com/PyDataBlog/ParallelKMeans.jl/tree/master/extras) directory. More tests in various languages are planned beyond the initial release version (`0.1.0`).
 
 *Note*: All benchmark tests are made on the same computer to help eliminate any bias.
+|PC Name                      |CPU                       |Ram               |
+|:---------------------------:|:------------------------:|:----------------:|
+|iMac (Retina 5K 27-inch 2019)|3 GHz 6-Core Intel Core i5|8 GB 2667 MHz DDR4|
 
 Currently, the benchmark speed tests are based on the search for optimal number of clusters using the [Elbow Method](https://en.wikipedia.org/wiki/Elbow_method_(clustering)) since this is a practical use case for most practioners employing the K-Means algorithm.
 
