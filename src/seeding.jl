@@ -48,8 +48,9 @@ UnitRange argument `r` select subarray of original design matrix `x` that is goi
 to be processed.
 """
 function chunk_colwise!(target, x, y, r)
+    T = eltype(x)
     @inbounds for j in r
-        res = 0.0
+        res = zero(T)
         for i in axes(x, 1)
             res += (x[i, j] - y[i])^2
         end
@@ -72,6 +73,7 @@ function smart_init(X, k, n_threads = Threads.nthreads();
         init = "k-means++")
 
     n_row, n_col = size(X)
+    T = eltype(X)
 
     if init == "k-means++"
 
@@ -80,17 +82,17 @@ function smart_init(X, k, n_threads = Threads.nthreads();
         # TODO relax constraints on distances, may be should
         # define `X` as X::AbstractArray{T} where {T <: Number}
         # and use this T for all calculations.
-        centroids = zeros(n_row, k)
+        centroids = zeros(T, n_row, k)
         rand_indices = Vector{Int}(undef, k)
         rand_idx = rand(1:n_col)
         rand_indices[1] = rand_idx
         centroids[:, 1] .= X[:, rand_idx]
-        distances = Vector{Float64}(undef, n_col)
-        new_distances = Vector{Float64}(undef, n_col)
+        distances = Vector{T}(undef, n_col)
+        new_distances = Vector{T}(undef, n_col)
 
         # compute distances from the first centroid chosen to all the other data points
         colwise!(distances, X, centroids[:, 1], n_threads)
-        distances[rand_idx] = 0.0
+        distances[rand_idx] = zero(T)
 
         for i = 2:k
             # choose the next centroid, the probability for each data point to be chosen
@@ -109,7 +111,7 @@ function smart_init(X, k, n_threads = Threads.nthreads();
             for i in 1:n_col
                 distances[i] = distances[i] < new_distances[i] ? distances[i] : new_distances[i]
             end
-            distances[r_idx] = 0.0
+            distances[r_idx] = zero(T)
         end
 
     else

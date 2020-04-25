@@ -21,16 +21,17 @@ struct Elkan <: AbstractKMeansAlg end
 function kmeans!(alg::Elkan, containers, X, k;
                 n_threads = Threads.nthreads(),
                 k_init = "k-means++", max_iters = 300,
-                tol = 1e-6, verbose = false, init = nothing)
+                tol = eltype(X)(1e-6), verbose = false, init = nothing)
     nrow, ncol = size(X)
     centroids = init == nothing ? smart_init(X, k, n_threads, init=k_init).centroids : deepcopy(init)
 
     update_containers(alg, containers, centroids, n_threads)
     @parallelize n_threads ncol chunk_initialize(alg, containers, centroids, X)
 
+    T = eltype(X)
     converged = false
     niters = 0
-    J_previous = 0.0
+    J_previous = zero(T)
 
     # Update centroids & labels with closest members until convergence
     while niters < max_iters
@@ -80,37 +81,38 @@ function kmeans!(alg::Elkan, containers, X, k;
     # TODO empty placeholder vectors should be calculated
     # TODO Float64 type definitions is too restrictive, should be relaxed
     # especially during GPU related development
-    return KmeansResult(centroids, containers.labels, Float64[], Int[], Float64[], totalcost, niters, converged)
+    return KmeansResult(centroids, containers.labels, T[], Int[], T[], totalcost, niters, converged)
 end
 
-function create_containers(::Elkan, k, nrow, ncol, n_threads)
+function create_containers(alg::Elkan, X, k, nrow, ncol, n_threads)
+    T = eltype(X)
     lng = n_threads + 1
-    centroids_new = Vector{Array{Float64,2}}(undef, lng)
-    centroids_cnt = Vector{Vector{Int}}(undef, lng)
+    centroids_new = Vector{Matrix{T}}(undef, lng)
+    centroids_cnt = Vector{Vector{T}}(undef, lng)
 
     for i = 1:lng
-        centroids_new[i] = zeros(nrow, k)
-        centroids_cnt[i] = zeros(k)
+        centroids_new[i] = zeros(T, nrow, k)
+        centroids_cnt[i] = zeros(T, k)
     end
 
-    centroids_dist = Matrix{Float64}(undef, k, k)
+    centroids_dist = Matrix{T}(undef, k, k)
 
     # lower bounds
-    lb = Matrix{Float64}(undef, k, ncol)
+    lb = Matrix{T}(undef, k, ncol)
 
     # upper bounds
-    ub = Vector{Float64}(undef, ncol)
+    ub = Vector{T}(undef, ncol)
 
     # r(x) in original paper, shows whether point distance should be updated
     stale = ones(Bool, ncol)
 
     # distance that centroid moved
-    p = Vector{Float64}(undef, k)
+    p = Vector{T}(undef, k)
 
     labels = zeros(Int, ncol)
 
     # total_sum_calculation
-    sum_of_squares = Vector{Float64}(undef, n_threads)
+    sum_of_squares = Vector{T}(undef, n_threads)
 
     return (
         centroids_new = centroids_new,
@@ -132,6 +134,7 @@ function chunk_initialize(::Elkan, containers, centroids, X, r, idx)
     labels = containers.labels
     centroids_new = containers.centroids_new[idx]
     centroids_cnt = containers.centroids_cnt[idx]
+    T = eltype(X)
 
     @inbounds for i in r
         min_dist = distance(X, centroids, i, 1)
@@ -150,7 +153,7 @@ function chunk_initialize(::Elkan, containers, centroids, X, r, idx)
         end
         ub[i] = min_dist
         labels[i] = label
-        centroids_cnt[label] += 1
+        centroids_cnt[label] += one(T)
         for j in axes(X, 1)
             centroids_new[j, label] += X[j, i]
         end
@@ -160,10 +163,11 @@ end
 function update_containers(::Elkan, containers, centroids, n_threads)
     # unpack containers for easier manipulations
     centroids_dist = containers.centroids_dist
+    T = eltype(centroids)
 
     k = size(centroids_dist, 1) # number of clusters
     @inbounds for j in axes(centroids_dist, 2)
-        min_dist = Inf
+        min_dist = T(Inf)
         for i in j + 1:k
             d = distance(centroids, centroids, i, j)
             centroids_dist[i, j] = d
@@ -179,7 +183,7 @@ function update_containers(::Elkan, containers, centroids, n_threads)
     # TODO: oh, one should be careful here. inequality holds for eucledian metrics
     # not square eucledian. So, for Lp norm it should be something like
     # centroids_dist = 0.5^p. Should check one more time original paper
-    centroids_dist .*= 0.25
+    centroids_dist .*= T(0.25)
 
     return centroids_dist
 end
@@ -193,6 +197,7 @@ function chunk_update_centroids(::Elkan, containers, centroids, X, r, idx)
     stale = containers.stale
     centroids_new = containers.centroids_new[idx]
     centroids_cnt = containers.centroids_cnt[idx]
+    T = eltype(X)
 
     @inbounds for i in r
         label_old = labels[i]
@@ -226,8 +231,8 @@ function chunk_update_centroids(::Elkan, containers, centroids, X, r, idx)
 
         if label != label_old
             labels[i] = label
-            centroids_cnt[label_old] -= 1
-            centroids_cnt[label] += 1
+            centroids_cnt[label_old] -= one(T)
+            centroids_cnt[label] += one(T)
             for j in axes(X, 1)
                 centroids_new[j, label_old] -= X[j, i]
                 centroids_new[j, label] += X[j, i]
@@ -251,12 +256,13 @@ function chunk_update_bounds(alg, containers, centroids, r, idx)
     ub = containers.ub
     stale = containers.stale
     labels = containers.labels
+    T = eltype(centroids)
 
     @inbounds for i in r
         for j in axes(centroids, 2)
-            lb[j, i] = lb[j, i] > p[j] ? lb[j, i] + p[j] - 2*sqrt(abs(lb[j, i]*p[j])) : 0.0
+            lb[j, i] = lb[j, i] > p[j] ? lb[j, i] + p[j] - T(2)*sqrt(abs(lb[j, i]*p[j])) : zero(T)
         end
         stale[i] = true
-        ub[i] += p[labels[i]] + 2*sqrt(abs(ub[i]*p[labels[i]]))
+        ub[i] += p[labels[i]] + T(2)*sqrt(abs(ub[i]*p[labels[i]]))
     end
 end

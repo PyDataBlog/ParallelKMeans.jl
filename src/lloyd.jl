@@ -17,13 +17,14 @@ centroids and so on, which are used during calculations.
 function kmeans!(alg::Lloyd, containers, X, k;
                 n_threads = Threads.nthreads(),
                 k_init = "k-means++", max_iters = 300,
-                tol = 1e-6, verbose = false, init = nothing)
+                tol = eltype(design_matrix)(1e-6), verbose = false, init = nothing)
     nrow, ncol = size(X)
-    centroids = init == nothing ? smart_init(X, k, n_threads, init=k_init).centroids : deepcopy(init)
+    centroids = isnothing(init) ? smart_init(X, k, n_threads, init=k_init).centroids : deepcopy(init)
 
+    T = eltype(X)
     converged = false
     niters = 1
-    J_previous = 0.0
+    J_previous = zero(T)
 
     # Update centroids & labels with closest members until convergence
     while niters <= max_iters
@@ -57,7 +58,7 @@ function kmeans!(alg::Lloyd, containers, X, k;
     # TODO empty placeholder vectors should be calculated
     # TODO Float64 type definitions is too restrictive, should be relaxed
     # especially during GPU related development
-    return KmeansResult(centroids, containers.labels, Float64[], Int[], Float64[], totalcost, niters, converged)
+    return KmeansResult(centroids, containers.labels, T[], Int[], T[], totalcost, niters, converged)
 end
 
 kmeans(design_matrix, k;
@@ -76,22 +77,23 @@ Internal function for the creation of all necessary intermidiate structures.
 - `centroids_cnt` - container which holds number of points for each centroid
 - `labels` - vector which holds labels of corresponding points
 """
-function create_containers(::Lloyd, k, nrow, ncol, n_threads)
+function create_containers(::Lloyd, X, k, nrow, ncol, n_threads)
+    T = eltype(X)
     lng = n_threads + 1
-    centroids_new = Vector{Array{Float64,2}}(undef, lng)
-    centroids_cnt = Vector{Vector{Int}}(undef, lng)
+    centroids_new = Vector{Matrix{T}}(undef, lng)
+    centroids_cnt = Vector{Vector{T}}(undef, lng)
 
     for i in 1:lng
-        centroids_new[i] = Array{Float64, 2}(undef, nrow, k)
+        centroids_new[i] = Matrix{T}(undef, nrow, k)
         centroids_cnt[i] = Vector{Int}(undef, k)
     end
 
     labels = Vector{Int}(undef, ncol)
 
-    J = Vector{Float64}(undef, n_threads)
+    J = Vector{T}(undef, n_threads)
 
     # total_sum_calculation
-    sum_of_squares = Vector{Float64}(undef, n_threads)
+    sum_of_squares = Vector{T}(undef, n_threads)
 
     return (centroids_new = centroids_new, centroids_cnt = centroids_cnt,
             labels = labels, J = J, sum_of_squares = sum_of_squares)
@@ -102,10 +104,11 @@ function chunk_update_centroids(::Lloyd, containers, centroids, X, r, idx)
     centroids_new = containers.centroids_new[idx]
     centroids_cnt = containers.centroids_cnt[idx]
     labels = containers.labels
+    T = eltype(X)
 
-    centroids_new .= 0.0
-    centroids_cnt .= 0
-    J = 0.0
+    centroids_new .= zero(T)
+    centroids_cnt .= zero(T)
+    J = zero(T)
     @inbounds for i in r
         min_dist = distance(X, centroids, i, 1)
         label = 1
@@ -115,7 +118,7 @@ function chunk_update_centroids(::Lloyd, containers, centroids, X, r, idx)
             min_dist = dist < min_dist ? dist : min_dist
         end
         labels[i] = label
-        centroids_cnt[label] += 1
+        centroids_cnt[label] += one(T)
         for j in axes(X, 1)
             centroids_new[j, label] += X[j, i]
         end

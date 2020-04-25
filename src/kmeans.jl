@@ -92,7 +92,7 @@ end
 Allocationless calculation of square eucledean distance between vectors X1[:, i1] and X2[:, i2]
 """
 function distance(X1, X2, i1, i2)
-    d = 0.0
+    d = zero(eltype(X1))
     # TODO: break of the loop if d is larger than threshold (known minimum disatnce)
     @inbounds @simd for i in axes(X1, 1)
         d += (X1[i, i1] - X2[i, i2])^2
@@ -110,7 +110,7 @@ design matrix(x), centroids (centre), and the number of desired groups (k).
 A Float type representing the computed metric is returned.
 """
 function sum_of_squares(containers, x, labels, centre, r, idx)
-    s = 0.0
+    s = zero(eltype(x))
 
     @inbounds for j in r
         for i in axes(x, 1)
@@ -151,9 +151,9 @@ A `KmeansResult` structure representing labels, centroids, and sum_squares is re
 function kmeans(alg, design_matrix, k;
                 n_threads = Threads.nthreads(),
                 k_init = "k-means++", max_iters = 300,
-                tol = 1e-6, verbose = false, init = nothing)
+                tol = eltype(design_matrix)(1e-6), verbose = false, init = nothing)
     nrow, ncol = size(design_matrix)
-    containers = create_containers(alg, k, nrow, ncol, n_threads)
+    containers = create_containers(alg, design_matrix, k, nrow, ncol, n_threads)
 
     return kmeans!(alg, containers, design_matrix, k, n_threads = n_threads,
                     k_init = k_init, max_iters = max_iters, tol = tol,
