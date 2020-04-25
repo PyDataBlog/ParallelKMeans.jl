@@ -47,4 +47,26 @@ end
     @test res.converged
 end
 
+@testset "Lloyd Float32 support" begin
+    Random.seed!(2020)
+
+    X = Float32.(rand(3, 100))
+    res = kmeans(Lloyd(), X, 3; n_threads = 1, tol = 1e-6, verbose = false)
+
+    @test typeof(res.totalcost) == Float32
+    @test res.totalcost ≈ 14.161985f0
+    @test res.converged
+    @test res.iterations == 11
+
+    Random.seed!(2020)
+
+    X = Float32.(rand(3, 100))
+    res = kmeans(Lloyd(), X, 3; n_threads = 2, tol = 1e-6, verbose = false)
+
+    @test typeof(res.totalcost) == Float32
+    @test res.totalcost ≈ 14.161985f0
+    @test res.converged
+    @test res.iterations == 11
+end
+
 end # module

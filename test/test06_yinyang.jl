@@ -110,4 +110,32 @@ end
     @test res.iterations == baseline.iterations
 end
 
+@testset "Yinyang Float32 support" begin
+    Random.seed!(2020)
+    X = Float32.(rand(3, 100))
+    baseline = kmeans(Lloyd(), X, 20, tol = 1e-10, n_threads = 1, verbose = false, max_iters = 1000)
+
+    Random.seed!(2020)
+    X = Float32.(rand(3, 100))
+
+    res = kmeans(Yinyang(5), X, 20, tol = 1e-10, n_threads = 1, verbose = false, max_iters = 1000)
+    @test res.converged
+    @test res.totalcost ≈ baseline.totalcost
+    @test res.assignments == baseline.assignments
+    @test res.centers ≈ baseline.centers
+    @test res.iterations == baseline.iterations
+    @test typeof(res.totalcost) == Float32
+
+    Random.seed!(2020)
+    X = Float32.(rand(3, 100))
+
+    res = kmeans(Yinyang(5), X, 20, tol = 1e-10, n_threads = 2, verbose = false, max_iters = 1000)
+    @test res.converged
+    @test res.totalcost ≈ baseline.totalcost
+    @test res.assignments == baseline.assignments
+    @test res.centers ≈ baseline.centers
+    @test res.iterations == baseline.iterations
+    @test typeof(res.totalcost) == Float32
+end
+
 end # module

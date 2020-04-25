@@ -46,9 +46,10 @@ function kmeans!(alg::Yinyang, containers, X, k;
     # update centers and calculate drifts. Step 3.1 of the original paper.
     calculate_centroids_movement(alg, containers, centroids)
 
+    T = eltype(X)
     converged = false
     niters = 0
-    J_previous = 0.0
+    J_previous = zero(T)
 
     # Update centroids & labels with closest members until convergence
     while niters < max_iters
@@ -86,18 +87,18 @@ function kmeans!(alg::Yinyang, containers, X, k;
     # TODO empty placeholder vectors should be calculated
     # TODO Float64 type definitions is too restrictive, should be relaxed
     # especially during GPU related development
-    # return KmeansResult(centroids, containers.labels, Float64[], Int[], Float64[], totalcost, niters, converged), containers
-    return KmeansResult(centroids, containers.labels, Float64[], Int[], Float64[], totalcost, niters, converged)
+    return KmeansResult(centroids, containers.labels, T[], Int[], T[], totalcost, niters, converged)
 end
 
-function create_containers(alg::Yinyang, k, nrow, ncol, n_threads)
+function create_containers(alg::Yinyang, X, k, nrow, ncol, n_threads)
+    T = eltype(X)
     lng = n_threads + 1
-    centroids_new = Vector{Array{Float64,2}}(undef, lng)
-    centroids_cnt = Vector{Vector{Int}}(undef, lng)
+    centroids_new = Vector{Matrix{T}}(undef, lng)
+    centroids_cnt = Vector{Vector{T}}(undef, lng)
 
     for i = 1:lng
-        centroids_new[i] = zeros(nrow, k)
-        centroids_cnt[i] = zeros(k)
+        centroids_new[i] = zeros(T, nrow, k)
+        centroids_cnt[i] = zeros(T, k)
     end
 
     mask = Vector{Vector{Bool}}(undef, n_threads)
@@ -114,15 +115,15 @@ function create_containers(alg::Yinyang, k, nrow, ncol, n_threads)
 
     labels = zeros(Int, ncol)
 
-    ub = Vector{Float64}(undef, ncol)
+    ub = Vector{T}(undef, ncol)
 
-    lb = Matrix{Float64}(undef, t, ncol)
+    lb = Matrix{T}(undef, t, ncol)
 
     # maximum group drifts
-    gd = Vector{Float64}(undef, t)
+    gd = Vector{T}(undef, t)
 
     # distance that centroid has moved
-    p = Vector{Float64}(undef, k)
+    p = Vector{T}(undef, k)
 
     # Group indices
     groups = Vector{UnitRange{Int}}(undef, t)
@@ -131,7 +132,7 @@ function create_containers(alg::Yinyang, k, nrow, ncol, n_threads)
     indices = Vector{Int}(undef, k)
 
     # total_sum_calculation
-    sum_of_squares = Vector{Float64}(undef, n_threads)
+    sum_of_squares = Vector{T}(undef, n_threads)
 
     # debug = []
 
@@ -166,12 +167,13 @@ function initialize(alg::Yinyang, containers, centroids, n_threads)
 end
 
 function chunk_initialize(alg::Yinyang, containers, centroids, X, r, idx)
+    T = eltype(X)
     centroids_cnt = containers.centroids_cnt[idx]
     centroids_new = containers.centroids_new[idx]
 
     @inbounds for i in r
         label = point_all_centers!(alg, containers, centroids, X, i)
-        centroids_cnt[label] += 1
+        centroids_cnt[label] += one(T)
         for j in axes(X, 1)
             centroids_new[j, label] += X[j, i]
         end
@@ -183,9 +185,10 @@ function calculate_centroids_movement(alg::Yinyang, containers, centroids)
     groups = containers.groups
     gd = containers.gd
     centroids_new = containers.centroids_new[end]
+    T = eltype(centroids)
 
     @inbounds for (gi, ri) in enumerate(groups)
-        max_drift = -1.0
+        max_drift = T(-Inf)
         for i in ri
             p[i] = sqrt(distance(centroids, centroids_new, i, i))
             max_drift = p[i] > max_drift ? p[i] : max_drift
@@ -212,6 +215,7 @@ function chunk_update_centroids(alg, containers, centroids, X, r, idx)
     groups = containers.groups
     indices = containers.indices
     t = length(groups)
+    T = eltype(X)
 
     @inbounds for i in r
         # update bounds
@@ -220,7 +224,7 @@ function chunk_update_centroids(alg, containers, centroids, X, r, idx)
 
         ub[i] += p[labels[i]]
         ubx = ub[i]
-        lbx = Inf
+        lbx = T(Inf)
         for gi in 1:length(groups)
             lb[gi, i] -= gd[gi]
             lbx = lb[gi, i] < lbx ? lb[gi, i] : lbx
@@ -246,7 +250,7 @@ function chunk_update_centroids(alg, containers, centroids, X, r, idx)
             mask[old_label] = true
             ri = groups[orig_group_id]
             old_lb = new_lb + gd[orig_group_id] # recovering initial value of lower bound
-            new_lb2 = Inf
+            new_lb2 = T(Inf)
             for c in ri
                 ((c == old_label) | (ubx < old_lb - p[c])) && continue
                 mask[c] = true
@@ -283,7 +287,7 @@ function chunk_update_centroids(alg, containers, centroids, X, r, idx)
             ubx < lb[gi, i] && continue
             new_lb = lb[gi, i]
             old_lb = new_lb + gd[gi]
-            new_lb2 = Inf
+            new_lb2 = T(Inf)
             ri = groups[gi]
             for c in ri
                 # local filtering
@@ -326,8 +330,8 @@ function chunk_update_centroids(alg, containers, centroids, X, r, idx)
         ub[i] = ubx
         if old_label != label
             labels[i] = label
-            centroids_cnt[label] += 1
-            centroids_cnt[old_label] -= 1
+            centroids_cnt[label] += one(T)
+            centroids_cnt[old_label] -= one(T)
             for j in axes(X, 1)
                 centroids_new[j, label] += X[j, i]
                 centroids_new[j, old_label] -= X[j, i]
@@ -346,14 +350,15 @@ function point_all_centers!(alg::Yinyang, containers, centroids, X, i)
     lb = containers.lb
     labels = containers.labels
     groups = containers.groups
+    T = eltype(X)
 
     label = 1
     label2 = 1
     group_id = 1
-    min_distance = Inf
+    min_distance = T(Inf)
     @inbounds for (gi, ri) in enumerate(groups)
-        group_min_distance = Inf
-        group_min_distance2 = Inf
+        group_min_distance = T(Inf)
+        group_min_distance2 = T(Inf)
         group_label = ri[1]
         for k in ri
             dist = distance(X, centroids, i, k)

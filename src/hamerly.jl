@@ -21,15 +21,16 @@ struct Hamerly <: AbstractKMeansAlg end
 function kmeans!(alg::Hamerly, containers, X, k;
                 n_threads = Threads.nthreads(),
                 k_init = "k-means++", max_iters = 300,
-                tol = 1e-6, verbose = false, init = nothing)
+                tol = eltype(X)(1e-6), verbose = false, init = nothing)
     nrow, ncol = size(X)
     centroids = init == nothing ? smart_init(X, k, n_threads, init=k_init).centroids : deepcopy(init)
 
     @parallelize n_threads ncol chunk_initialize(alg, containers, centroids, X)
 
+    T = eltype(X)
     converged = false
     niters = 0
-    J_previous = 0.0
+    J_previous = zero(T)
     p = containers.p
 
     # Update centroids & labels with closest members until convergence
@@ -70,35 +71,36 @@ function kmeans!(alg::Hamerly, containers, X, k;
     # TODO empty placeholder vectors should be calculated
     # TODO Float64 type definitions is too restrictive, should be relaxed
     # especially during GPU related development
-    return KmeansResult(centroids, containers.labels, Float64[], Int[], Float64[], totalcost, niters, converged)
+    return KmeansResult(centroids, containers.labels, T[], Int[], T[], totalcost, niters, converged)
 end
 
-function create_containers(alg::Hamerly, k, nrow, ncol, n_threads)
+function create_containers(alg::Hamerly, X, k, nrow, ncol, n_threads)
+    T = eltype(X)
     lng = n_threads + 1
-    centroids_new = Vector{Array{Float64,2}}(undef, lng)
-    centroids_cnt = Vector{Vector{Int}}(undef, lng)
+    centroids_new = Vector{Matrix{T}}(undef, lng)
+    centroids_cnt = Vector{Vector{T}}(undef, lng)
 
     for i = 1:lng
-        centroids_new[i] = zeros(nrow, k)
-        centroids_cnt[i] = zeros(k)
+        centroids_new[i] = zeros(T, nrow, k)
+        centroids_cnt[i] = zeros(T, k)
     end
 
     # Upper bound to the closest center
-    ub = Vector{Float64}(undef, ncol)
+    ub = Vector{T}(undef, ncol)
 
     # lower bound to the second closest center
-    lb = Vector{Float64}(undef, ncol)
+    lb = Vector{T}(undef, ncol)
 
     labels = zeros(Int, ncol)
 
     # distance that centroid has moved
-    p = Vector{Float64}(undef, k)
+    p = Vector{T}(undef, k)
 
     # distance from the center to the closest other center
-    s = Vector{Float64}(undef, k)
+    s = Vector{T}(undef, k)
 
     # total_sum_calculation
-    sum_of_squares = Vector{Float64}(undef, n_threads)
+    sum_of_squares = Vector{T}(undef, n_threads)
 
     return (
         centroids_new = centroids_new,
@@ -118,12 +120,13 @@ end
 Initial calulation of all bounds and points labeling.
 """
 function chunk_initialize(alg::Hamerly, containers, centroids, X, r, idx)
+    T = eltype(X)
     centroids_cnt = containers.centroids_cnt[idx]
     centroids_new = containers.centroids_new[idx]
 
     @inbounds for i in r
         label = point_all_centers!(containers, centroids, X, i)
-        centroids_cnt[label] += 1
+        centroids_cnt[label] += one(T)
         for j in axes(X, 1)
             centroids_new[j, label] += X[j, i]
         end
@@ -136,12 +139,13 @@ end
 Calculates minimum distances from centers to each other.
 """
 function update_containers(::Hamerly, containers, centroids, n_threads)
+    T = eltype(centroids)
     s = containers.s
-    s .= Inf
+    s .= T(Inf)
     @inbounds for i in axes(centroids, 2)
         for j in i+1:size(centroids, 2)
             d = distance(centroids, centroids, i, j)
-            d = 0.25*d
+            d = T(0.25)*d
             s[i] = s[i] > d ? d : s[i]
             s[j] = s[j] > d ? d : s[j]
         end
@@ -164,6 +168,7 @@ function chunk_update_centroids(alg::Hamerly, containers, centroids, X, r, idx)
     s = containers.s
     lb = containers.lb
     ub = containers.ub
+    T = eltype(X)
 
     @inbounds for i in r
         # m ← max(s(a(i))/2, l(i))
@@ -178,8 +183,8 @@ function chunk_update_centroids(alg::Hamerly, containers, centroids, X, r, idx)
                 label_new = point_all_centers!(containers, centroids, X, i)
                 if label != label_new
                     labels[i] = label_new
-                    centroids_cnt[label_new] += 1
-                    centroids_cnt[label] -= 1
+                    centroids_cnt[label_new] += one(T)
+                    centroids_cnt[label] -= one(T)
                     for j in axes(X, 1)
                         centroids_new[j, label_new] += X[j, i]
                         centroids_new[j, label] -= X[j, i]
@@ -199,9 +204,10 @@ function point_all_centers!(containers, centroids, X, i)
     ub = containers.ub
     lb = containers.lb
     labels = containers.labels
+    T = eltype(X)
 
-    min_distance = Inf
-    min_distance2 = Inf
+    min_distance = T(Inf)
+    min_distance2 = T(Inf)
     label = 1
     @inbounds for k in axes(centroids, 2)
         dist = distance(X, centroids, i, k)
@@ -230,9 +236,10 @@ in `centroids` and `p` respectively.
 function move_centers(::Hamerly, containers, centroids)
     centroids_new = containers.centroids_new[end]
     p = containers.p
+    T = eltype(centroids)
 
     @inbounds for i in axes(centroids, 2)
-        d = 0.0
+        d = zero(T)
         for j in axes(centroids, 1)
             d += (centroids[j, i] - centroids_new[j, i])^2
             centroids[j, i] = centroids_new[j, i]
@@ -251,6 +258,7 @@ function chunk_update_bounds(alg::Hamerly, containers, r1, r2, pr1, pr2, r, idx)
     ub = containers.ub
     lb = containers.lb
     labels = containers.labels
+    T = eltype(containers.ub)
 
     # Since bounds are squred distance, `sqrt` is used to make corresponding estimation, unlike
     # the original paper, where usual metric is used.
@@ -270,11 +278,11 @@ function chunk_update_bounds(alg::Hamerly, containers, r1, r2, pr1, pr2, r, idx)
     # The same applies to the lower bounds.
     @inbounds for i in r
         label = labels[i]
-        ub[i] += 2*sqrt(abs(ub[i] * p[label])) + p[label]
+        ub[i] += T(2)*sqrt(abs(ub[i] * p[label])) + p[label]
         if r1 == label
-            lb[i] = lb[i] <= pr2 ? 0.0 : lb[i] + pr2 - 2*sqrt(abs(pr2*lb[i]))
+            lb[i] = lb[i] <= pr2 ? zero(T) : lb[i] + pr2 - T(2)*sqrt(abs(pr2*lb[i]))
         else
-            lb[i] = lb[i] <= pr1 ? 0.0 : lb[i] + pr1 - 2*sqrt(abs(pr1*lb[i]))
+            lb[i] = lb[i] <= pr1 ? zero(T) : lb[i] + pr1 - T(2)*sqrt(abs(pr1*lb[i]))
         end
     end
 end
@@ -284,10 +292,10 @@ end
 
 Finds maximum and next after maximum arguments.
 """
-function double_argmax(p)
+function double_argmax(p::AbstractVector{T}) where T
     r1, r2 = 1, 1
     d1 = p[1]
-    d2 = -1.0
+    d2 = T(-Inf)
     for i in 2:length(p)
         if p[i] > d1
             r2 = r1
