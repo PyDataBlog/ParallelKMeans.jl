@@ -30,7 +30,7 @@ Yinyang() = Yinyang(true, 7)
 Yinyang(auto::Bool) = Yinyang(auto, 7)
 Yinyang(group_size::Int) = Yinyang(true, group_size)
 
-function kmeans!(alg::Yinyang, containers, X, k;
+function kmeans!(alg::Yinyang, containers, X, k, weights;
                 n_threads = Threads.nthreads(),
                 k_init = "k-means++", max_iters = 300,
                 tol = 1e-6, verbose = false, init = nothing)
@@ -40,7 +40,7 @@ function kmeans!(alg::Yinyang, containers, X, k;
     # create initial groups of centers, step 1 in original paper
     initialize(alg, containers, centroids, n_threads)
     # construct initial bounds, step 2
-    @parallelize n_threads ncol chunk_initialize(alg, containers, centroids, X)
+    @parallelize n_threads ncol chunk_initialize(alg, containers, centroids, X, weights)
     collect_containers(alg, containers, n_threads)
 
     # update centers and calculate drifts. Step 3.1 of the original paper.
@@ -69,14 +69,14 @@ function kmeans!(alg::Yinyang, containers, X, k;
 
         # push!(containers.debug, [0, 0, 0])
         # Core calculation of the Yinyang, 3.2-3.3 steps of the original paper
-        @parallelize n_threads ncol chunk_update_centroids(alg, containers, centroids, X)
+        @parallelize n_threads ncol chunk_update_centroids(alg, containers, centroids, X, weights)
         collect_containers(alg, containers, n_threads)
 
         # update centers and calculate drifts. Step 3.1 of the original paper.
         calculate_centroids_movement(alg, containers, centroids)
     end
 
-    @parallelize n_threads ncol sum_of_squares(containers, X, containers.labels, centroids)
+    @parallelize n_threads ncol sum_of_squares(containers, X, containers.labels, centroids, weights)
     totalcost = sum(containers.sum_of_squares)
 
     # Terminate algorithm with the assumption that K-means has converged
@@ -166,16 +166,16 @@ function initialize(alg::Yinyang, containers, centroids, n_threads)
     end
 end
 
-function chunk_initialize(alg::Yinyang, containers, centroids, X, r, idx)
+function chunk_initialize(alg::Yinyang, containers, centroids, X, weights, r, idx)
     T = eltype(X)
     centroids_cnt = containers.centroids_cnt[idx]
     centroids_new = containers.centroids_new[idx]
 
     @inbounds for i in r
         label = point_all_centers!(alg, containers, centroids, X, i)
-        centroids_cnt[label] += one(T)
+        centroids_cnt[label] += isnothing(weights) ? one(T) : weights[i]
         for j in axes(X, 1)
-            centroids_new[j, label] += X[j, i]
+            centroids_new[j, label] += isnothing(weights) ? X[j, i] : weights[i] * X[j, i]
         end
     end
 end
@@ -202,7 +202,7 @@ function calculate_centroids_movement(alg::Yinyang, containers, centroids)
     end
 end
 
-function chunk_update_centroids(alg, containers, centroids, X, r, idx)
+function chunk_update_centroids(alg, containers, centroids, X, weights, r, idx)
     # unpack containers for easier manipulations
     centroids_new = containers.centroids_new[idx]
     centroids_cnt = containers.centroids_cnt[idx]
@@ -330,11 +330,11 @@ function chunk_update_centroids(alg, containers, centroids, X, r, idx)
         ub[i] = ubx
         if old_label != label
             labels[i] = label
-            centroids_cnt[label] += one(T)
-            centroids_cnt[old_label] -= one(T)
+            centroids_cnt[label] += isnothing(weights) ? one(T) : weights[i]
+            centroids_cnt[old_label] -= isnothing(weights) ? one(T) : weights[i]
             for j in axes(X, 1)
-                centroids_new[j, label] += X[j, i]
-                centroids_new[j, old_label] -= X[j, i]
+                centroids_new[j, label] += isnothing(weights) ? X[j, i] : weights[i] * X[j, i]
+                centroids_new[j, old_label] -= isnothing(weights) ? X[j, i] : weights[i] * X[j, i]
             end
         end
     end
