@@ -5,6 +5,7 @@ using Random
 import MLJModelInterface
 import Base.Threads: @spawn
 import Distances
+import Distances: Euclidean, evaluate
 
 include("kmeans.jl")
 include("seeding.jl")

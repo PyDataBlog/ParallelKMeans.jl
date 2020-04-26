@@ -96,6 +96,7 @@ macro parallelize(n_threads, ncol, f)
     end
 end
 
+
 """
     distance(X1, X2, i1, i2)
 
@@ -107,9 +108,34 @@ function distance(X1, X2, i1, i2)
     @inbounds @simd for i in axes(X1, 1)
         d += (X1[i, i1] - X2[i, i2])^2
     end
+    return d
+end
+
+
+"""
+    distance(metric, X1, X2, i1, i2)
+
+Allocationless calculation of distance between vectors X1[:, i1] and X2[:, i2] defined by the supplied distance metric.
+"""
+distance(metric, X1, X2, i1, i2) = evaluate(metric, X1[:, i1], X2[:, i2])
+
+
+"""
+    distance(X1, X2, i1, i2)
+
+Allocationless calculation of square eucledean distance between vectors X1[:, i1] and X2[:, i2]
+"""
+function distance(metric::Euclidean, X1, X2, i1, i2)
+    # here goes my definition
+    d = zero(eltype(X1))
+    # TODO: break of the loop if d is larger than threshold (known minimum disatnce)
+    @inbounds @simd for i in axes(X1, 1)
+        d += (X1[i, i1] - X2[i, i2])^2
+    end
 
     return d
 end
+
 
 """
     sum_of_squares(x, labels, centre, k)
@@ -128,6 +154,7 @@ function sum_of_squares(containers, x, labels, centre, weights, r, idx)
 
     containers.sum_of_squares[idx] = s
 end
+
 
 """
     kmeans([alg::AbstractKMeansAlg,] design_matrix, k; n_threads = nthreads(),
