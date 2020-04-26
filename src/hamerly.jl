@@ -18,14 +18,14 @@ kmeans(Hamerly(), X, 3) # 3 clusters, Hamerly algorithm
 struct Hamerly <: AbstractKMeansAlg end
 
 
-function kmeans!(alg::Hamerly, containers, X, k;
+function kmeans!(alg::Hamerly, containers, X, k, weights;
                 n_threads = Threads.nthreads(),
                 k_init = "k-means++", max_iters = 300,
                 tol = eltype(X)(1e-6), verbose = false, init = nothing)
     nrow, ncol = size(X)
     centroids = init == nothing ? smart_init(X, k, n_threads, init=k_init).centroids : deepcopy(init)
 
-    @parallelize n_threads ncol chunk_initialize(alg, containers, centroids, X)
+    @parallelize n_threads ncol chunk_initialize(alg, containers, centroids, X, weights)
 
     T = eltype(X)
     converged = false
@@ -37,7 +37,7 @@ function kmeans!(alg::Hamerly, containers, X, k;
     while niters < max_iters
         niters += 1
         update_containers(alg, containers, centroids, n_threads)
-        @parallelize n_threads ncol chunk_update_centroids(alg, containers, centroids, X)
+        @parallelize n_threads ncol chunk_update_centroids(alg, containers, centroids, X, weights)
         collect_containers(alg, containers, n_threads)
 
         J = sum(containers.ub)
@@ -60,7 +60,7 @@ function kmeans!(alg::Hamerly, containers, X, k;
         J_previous = J
     end
 
-    @parallelize n_threads ncol sum_of_squares(containers, X, containers.labels, centroids)
+    @parallelize n_threads ncol sum_of_squares(containers, X, containers.labels, centroids, weights)
     totalcost = sum(containers.sum_of_squares)
 
     # Terminate algorithm with the assumption that K-means has converged
@@ -119,16 +119,16 @@ end
 
 Initial calulation of all bounds and points labeling.
 """
-function chunk_initialize(alg::Hamerly, containers, centroids, X, r, idx)
+function chunk_initialize(alg::Hamerly, containers, centroids, X, weights, r, idx)
     T = eltype(X)
     centroids_cnt = containers.centroids_cnt[idx]
     centroids_new = containers.centroids_new[idx]
 
     @inbounds for i in r
         label = point_all_centers!(containers, centroids, X, i)
-        centroids_cnt[label] += one(T)
+        centroids_cnt[label] += isnothing(weights) ? one(T) : weights[i]
         for j in axes(X, 1)
-            centroids_new[j, label] += X[j, i]
+            centroids_new[j, label] += isnothing(weights) ? X[j, i] : weights[i] * X[j, i]
         end
     end
 end
@@ -159,7 +159,7 @@ Detailed description of this function can be found in the original paper. It ite
 all points and tries to skip some calculation using known upper and lower bounds of distances
 from point to centers. If it fails to skip than it fall back to generic `point_all_centers!` function.
 """
-function chunk_update_centroids(alg::Hamerly, containers, centroids, X, r, idx)
+function chunk_update_centroids(alg::Hamerly, containers, centroids, X, weights, r, idx)
 
     # unpack containers for easier manipulations
     centroids_new = containers.centroids_new[idx]
@@ -183,11 +183,11 @@ function chunk_update_centroids(alg::Hamerly, containers, centroids, X, r, idx)
                 label_new = point_all_centers!(containers, centroids, X, i)
                 if label != label_new
                     labels[i] = label_new
-                    centroids_cnt[label_new] += one(T)
-                    centroids_cnt[label] -= one(T)
+                    centroids_cnt[label_new] += isnothing(weights) ? one(T) : weights[i]
+                    centroids_cnt[label] -= isnothing(weights) ? one(T) : weights[i]
                     for j in axes(X, 1)
-                        centroids_new[j, label_new] += X[j, i]
-                        centroids_new[j, label] -= X[j, i]
+                        centroids_new[j, label_new] += isnothing(weights) ? X[j, i] : weights[i] * X[j, i]
+                        centroids_new[j, label] -= isnothing(weights) ? X[j, i] : weights[i] * X[j, i]
                     end
                 end
             end
