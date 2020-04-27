@@ -9,10 +9,10 @@ centroid vector `y[:, i]`.
 UnitRange argument `r` select subarray of original design matrix `x` that is going
 to be processed.
 """
-function chunk_colwise(target, x, y, i, weights, r, idx)
+function chunk_colwise(metric, target, x, y, i, weights, r, idx)
     T = eltype(x)
     @inbounds for j in r
-        dist = distance(x, y, j, i)
+        dist = distance(metric, x, y, j, i)
         dist = isnothing(weights) ? dist : weights[j] * dist
         target[j] = dist < target[j] ? dist : target[j]
     end
@@ -30,7 +30,8 @@ of centroids from X used if any other string is attempted.
 A named tuple representing centroids and indices respecitively is returned.
 """
 function smart_init(X, k, n_threads = Threads.nthreads(), weights = nothing,
-                    rng = Random.GLOBAL_RNG; init = "k-means++")
+                    rng = Random.GLOBAL_RNG;
+                    init = "k-means++", metric=Euclidean())
 
     nrow, ncol = size(X)
     T = eltype(X)
@@ -55,7 +56,7 @@ function smart_init(X, k, n_threads = Threads.nthreads(), weights = nothing,
         distances = fill(T(Inf), ncol)
 
         # compute distances from the first centroid chosen to all the other data points
-        @parallelize n_threads ncol chunk_colwise(distances, X, centroids, 1, weights)
+        @parallelize n_threads ncol chunk_colwise(metric, distances, X, centroids, 1, weights)
         distances[rand_idx] = zero(T)
 
         for i = 2:k
@@ -71,7 +72,7 @@ function smart_init(X, k, n_threads = Threads.nthreads(), weights = nothing,
             i == k && break
 
             # compute distances from the centroids to all data points
-            @parallelize n_threads ncol chunk_colwise(distances, X, centroids, i, weights)
+            @parallelize n_threads ncol chunk_colwise(metric, distances, X, centroids, i, weights)
 
             distances[r_idx] = zero(T)
         end

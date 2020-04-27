@@ -98,21 +98,6 @@ end
 
 
 """
-    distance(X1, X2, i1, i2)
-
-Allocationless calculation of square eucledean distance between vectors X1[:, i1] and X2[:, i2]
-"""
-function distance(X1, X2, i1, i2)
-    d = zero(eltype(X1))
-    # TODO: break of the loop if d is larger than threshold (known minimum disatnce)
-    @inbounds @simd for i in axes(X1, 1)
-        d += (X1[i, i1] - X2[i, i2])^2
-    end
-    return d
-end
-
-
-"""
     distance(metric, X1, X2, i1, i2)
 
 Allocationless calculation of distance between vectors X1[:, i1] and X2[:, i2] defined by the supplied distance metric.
@@ -145,11 +130,11 @@ design matrix(x), centroids (centre), and the number of desired groups (k).
 
 A Float type representing the computed metric is returned.
 """
-function sum_of_squares(containers, x, labels, centre, weights, r, idx)
+function sum_of_squares(metric, containers, x, labels, centre, weights, r, idx)
     s = zero(eltype(x))
 
     @inbounds for i in r
-        s += isnothing(weights) ? distance(x, centre, i, labels[i]) : weights[i] * distance(x, centre, i, labels[i])
+        s += isnothing(weights) ? distance(metric, x, centre, i, labels[i]) : weights[i] * distance(metric, x, centre, i, labels[i])
     end
 
     containers.sum_of_squares[idx] = s
@@ -189,13 +174,15 @@ function kmeans(alg::AbstractKMeansAlg, design_matrix, k;
                 n_threads = Threads.nthreads(),
                 k_init = "k-means++", max_iters = 300,
                 tol = eltype(design_matrix)(1e-6), verbose = false,
-                init = nothing, rng = Random.GLOBAL_RNG)
+                init = nothing, rng = Random.GLOBAL_RNG, metric = Euclidean())
+
     nrow, ncol = size(design_matrix)
     containers = create_containers(alg, design_matrix, k, nrow, ncol, n_threads)
 
     return kmeans!(alg, containers, design_matrix, k, weights, n_threads = n_threads,
                     k_init = k_init, max_iters = max_iters, tol = tol,
-                    verbose = verbose, init = init, rng = rng)
+                    verbose = verbose, init = init, rng = rng, metric = Euclidean())
+
 end
 
 
