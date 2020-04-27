@@ -138,4 +138,66 @@ end
     @test typeof(res.totalcost) == Float32
 end
 
+@testset "Yinyang weights support" begin
+    Random.seed!(2020)
+    X = rand(3, 100)
+    weights = rand(100)
+
+    baseline = kmeans(Lloyd(), X, 10, weights; tol = 1e-10, verbose = false)
+
+    Random.seed!(2020)
+    X = rand(3, 100)
+    weights = rand(100)
+
+    res = kmeans(Yinyang(), X, 10, weights; tol = 1e-10, verbose = false)
+    @test res.totalcost ≈ baseline.totalcost
+    @test res.converged
+    @test res.iterations == baseline.iterations
+
+    Random.seed!(2020)
+    X = rand(3, 100)
+    weights = rand(100)
+
+    res = kmeans(Yinyang(), X, 10, weights; n_threads = 2, tol = 1e-10, verbose = false)
+    @test res.totalcost ≈ baseline.totalcost
+    @test res.converged
+    @test res.iterations == baseline.iterations
+
+    Random.seed!(2020)
+    X = rand(3, 100)
+    weights = rand(100)
+
+    res = kmeans(Yinyang(5), X, 10, weights; tol = 1e-10, verbose = false)
+    @test res.totalcost ≈ baseline.totalcost
+    @test res.converged
+    @test res.iterations == baseline.iterations
+
+    Random.seed!(2020)
+    X = rand(3, 100)
+    weights = rand(100)
+
+    res = kmeans(Yinyang(5), X, 10, weights; n_threads = 2, tol = 1e-10, verbose = false)
+    @test res.totalcost ≈ baseline.totalcost
+    @test res.converged
+    @test res.iterations == baseline.iterations
+end
+
+@testset "Yinyang possible interfaces" begin
+    alg = Yinyang()
+    @test alg.auto
+    @test alg.group_size == 7
+
+    alg = Yinyang(group_size = 10)
+    @test alg.group_size == 10
+
+    alg = Yinyang(auto = false)
+    @test !alg.auto
+
+    alg = Yinyang(10)
+    @test alg.group_size == 10
+
+    alg = Yinyang(false)
+    @test !alg.auto
+end
+
 end # module

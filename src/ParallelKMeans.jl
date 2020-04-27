@@ -7,15 +7,16 @@ import Distances
 
 const MMI = MLJModelInterface
 
-include("seeding.jl")
 include("kmeans.jl")
+include("seeding.jl")
 include("lloyd.jl")
 include("hamerly.jl")
 include("elkan.jl")
 include("yinyang.jl")
 include("mlj_interface.jl")
+include("coreset.jl")
 
 export kmeans
-export Lloyd, Hamerly, Elkan, Yinyang
+export Lloyd, Hamerly, Elkan, Yinyang, 阴阳, Coreset
 
 end # module

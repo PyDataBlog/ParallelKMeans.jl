@@ -18,15 +18,15 @@ kmeans(Elkan(), X, 3) # 3 clusters, Elkan algorithm
 """
 struct Elkan <: AbstractKMeansAlg end
 
-function kmeans!(alg::Elkan, containers, X, k;
+function kmeans!(alg::Elkan, containers, X, k, weights;
                 n_threads = Threads.nthreads(),
                 k_init = "k-means++", max_iters = 300,
                 tol = eltype(X)(1e-6), verbose = false, init = nothing)
     nrow, ncol = size(X)
-    centroids = init == nothing ? smart_init(X, k, n_threads, init=k_init).centroids : deepcopy(init)
+    centroids = init == nothing ? smart_init(X, k, n_threads, weights, init=k_init).centroids : deepcopy(init)
 
     update_containers(alg, containers, centroids, n_threads)
-    @parallelize n_threads ncol chunk_initialize(alg, containers, centroids, X)
+    @parallelize n_threads ncol chunk_initialize(alg, containers, centroids, X, weights)
 
     T = eltype(X)
     converged = false
@@ -37,7 +37,7 @@ function kmeans!(alg::Elkan, containers, X, k;
     while niters < max_iters
         niters += 1
         # Core iteration
-        @parallelize n_threads ncol chunk_update_centroids(alg, containers, centroids, X)
+        @parallelize n_threads ncol chunk_update_centroids(alg, containers, centroids, X, weights)
 
         # Collect distributed containers (such as centroids_new, centroids_cnt)
         # in paper it is step 4
@@ -70,7 +70,7 @@ function kmeans!(alg::Elkan, containers, X, k;
         J_previous = J
     end
 
-    @parallelize n_threads ncol sum_of_squares(containers, X, containers.labels, centroids)
+    @parallelize n_threads ncol sum_of_squares(containers, X, containers.labels, centroids, weights)
     totalcost = sum(containers.sum_of_squares)
 
     # Terminate algorithm with the assumption that K-means has converged
@@ -127,7 +127,7 @@ function create_containers(alg::Elkan, X, k, nrow, ncol, n_threads)
     )
 end
 
-function chunk_initialize(::Elkan, containers, centroids, X, r, idx)
+function chunk_initialize(::Elkan, containers, centroids, X, weights, r, idx)
     ub = containers.ub
     lb = containers.lb
     centroids_dist = containers.centroids_dist
@@ -153,9 +153,9 @@ function chunk_initialize(::Elkan, containers, centroids, X, r, idx)
         end
         ub[i] = min_dist
         labels[i] = label
-        centroids_cnt[label] += one(T)
+        centroids_cnt[label] += isnothing(weights) ? one(T) : weights[i]
         for j in axes(X, 1)
-            centroids_new[j, label] += X[j, i]
+            centroids_new[j, label] += isnothing(weights) ? X[j, i] : weights[i] * X[j, i]
         end
     end
 end
@@ -188,7 +188,7 @@ function update_containers(::Elkan, containers, centroids, n_threads)
     return centroids_dist
 end
 
-function chunk_update_centroids(::Elkan, containers, centroids, X, r, idx)
+function chunk_update_centroids(::Elkan, containers, centroids, X, weights, r, idx)
     # unpack
     ub = containers.ub
     lb = containers.lb
@@ -231,11 +231,11 @@ function chunk_update_centroids(::Elkan, containers, centroids, X, r, idx)
 
         if label != label_old
             labels[i] = label
-            centroids_cnt[label_old] -= one(T)
-            centroids_cnt[label] += one(T)
+            centroids_cnt[label_old] -= isnothing(weights) ? one(T) : weights[i]
+            centroids_cnt[label] += isnothing(weights) ? one(T) : weights[i]
             for j in axes(X, 1)
-                centroids_new[j, label_old] -= X[j, i]
-                centroids_new[j, label] += X[j, i]
+                centroids_new[j, label_old] -= isnothing(weights) ? X[j, i] : weights[i] * X[j, i]
+                centroids_new[j, label] += isnothing(weights) ? X[j, i] : weights[i] * X[j, i]
             end
         end
     end

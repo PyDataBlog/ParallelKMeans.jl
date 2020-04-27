@@ -72,15 +72,16 @@ git checkout experimental
 - [X] Implementation of [Hamerly implementation](https://www.researchgate.net/publication/220906984_Making_k-means_Even_Faster).
 - [X] Interface for inclusion in Alan Turing Institute's [MLJModels](https://github.com/alan-turing-institute/MLJModels.jl#who-is-this-repo-for).
 - [X] Full Implementation of Triangle inequality based on [Elkan - 2003 Using the Triangle Inequality to Accelerate K-Means"](https://www.aaai.org/Papers/ICML/2003/ICML03-022.pdf).
-- [X] Implementation of [Yinyang K-Means: A Drop-In Replacement of the Classic K-Means with Consistent Speedup](https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/ding15.pdf)
+- [X] Implementation of [Yinyang K-Means: A Drop-In Replacement of the Classic K-Means with Consistent Speedup](https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/ding15.pdf).
+- [X] Implementation of [Coresets](http://proceedings.mlr.press/v51/lucic16-supp.pdf).
 - [ ] Implementation of [Geometric methods to accelerate k-means algorithm](http://cs.baylor.edu/~hamerly/papers/sdm2016_rysavy_hamerly.pdf).
+- [X] Support for weighted K-means.
 - [ ] Support for other distance metrics supported by [Distances.jl](https://github.com/JuliaStats/Distances.jl#supported-distances).
 - [ ] Support of MLJ Random generation hyperparameter.
 - [ ] Native support for tabular data inputs outside of MLJModels' interface.
 - [ ] Refactoring and finalizaiton of API desgin.
 - [ ] GPU support.
 - [ ] Distributed calculations support.
-- [ ] Implementation of other K-Means algorithm variants based on recent literature.
 - [ ] Optimization of code base.
 - [ ] Improved Documentation
 - [ ] More benchmark tests.
@@ -123,6 +124,7 @@ r.converged             # whether the procedure converged
 - [Hamerly()](https://www.researchgate.net/publication/220906984_Making_k-means_Even_Faster) - Hamerly is good for moderate number of clusters (< 50?) and moderate dimensions (<100?).
 - [Elkan()](https://www.aaai.org/Papers/ICML/2003/ICML03-022.pdf) - Recommended for high dimensional data.
 - [Yinyang()](https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/ding15.pdf) - Recommended for large dimensions and/or large number of clusters.
+- [Coreset()](http://proceedings.mlr.press/v51/lucic16-supp.pdf) - Recommended for very fast clustering of very large datasets, when extreme accuracy is not important.
 - [Geometric()](http://cs.baylor.edu/~hamerly/papers/sdm2016_rysavy_hamerly.pdf) - (Coming soon)
 - [MiniBatch()](https://www.eecs.tufts.edu/~dsculley/papers/fastkmeans.pdf) - (Coming soon)
 
@@ -204,6 +206,7 @@ ________________________________________________________________________________
 - 0.1.3 Faster & optimized execution.
 - 0.1.4 Bug fixes.
 - 0.1.5 Added `Yinyang` algorithm.
+- 0.1.6 Added support for weighted k-means; Added `Coreset` algorithm; improved support for different types of the design matrix.
 
 ## Contributing
 

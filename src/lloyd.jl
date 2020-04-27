@@ -14,12 +14,12 @@ found in `kmeans`.
 Argument `containers` represent algorithm specific containers, such as labels, intermidiate
 centroids and so on, which are used during calculations.
 """
-function kmeans!(alg::Lloyd, containers, X, k;
+function kmeans!(alg::Lloyd, containers, X, k, weights;
                 n_threads = Threads.nthreads(),
                 k_init = "k-means++", max_iters = 300,
                 tol = eltype(design_matrix)(1e-6), verbose = false, init = nothing)
     nrow, ncol = size(X)
-    centroids = isnothing(init) ? smart_init(X, k, n_threads, init=k_init).centroids : deepcopy(init)
+    centroids = isnothing(init) ? smart_init(X, k, n_threads, weights, init=k_init).centroids : deepcopy(init)
 
     T = eltype(X)
     converged = false
@@ -28,7 +28,7 @@ function kmeans!(alg::Lloyd, containers, X, k;
 
     # Update centroids & labels with closest members until convergence
     while niters <= max_iters
-        @parallelize n_threads ncol chunk_update_centroids(alg, containers, centroids, X)
+        @parallelize n_threads ncol chunk_update_centroids(alg, containers, centroids, X, weights)
         collect_containers(alg, containers, centroids, n_threads)
         J = sum(containers.J)
 
@@ -47,7 +47,7 @@ function kmeans!(alg::Lloyd, containers, X, k;
         niters += 1
     end
 
-    @parallelize n_threads ncol sum_of_squares(containers, X, containers.labels, centroids)
+    @parallelize n_threads ncol sum_of_squares(containers, X, containers.labels, centroids, weights)
     totalcost = sum(containers.sum_of_squares)
 
     # Terminate algorithm with the assumption that K-means has converged
@@ -61,11 +61,11 @@ function kmeans!(alg::Lloyd, containers, X, k;
     return KmeansResult(centroids, containers.labels, T[], Int[], T[], totalcost, niters, converged)
 end
 
-kmeans(design_matrix, k;
+kmeans(design_matrix, k, weights = nothing;
     n_threads = Threads.nthreads(),
     k_init = "k-means++", max_iters = 300, tol = 1e-6,
     verbose = false, init = nothing) =
-        kmeans(Lloyd(), design_matrix, k; n_threads = n_threads, k_init = k_init, max_iters = max_iters, tol = tol,
+        kmeans(Lloyd(), design_matrix, k, weights; n_threads = n_threads, k_init = k_init, max_iters = max_iters, tol = tol,
             verbose = verbose, init = init)
 
 """
@@ -99,7 +99,7 @@ function create_containers(::Lloyd, X, k, nrow, ncol, n_threads)
             labels = labels, J = J, sum_of_squares = sum_of_squares)
 end
 
-function chunk_update_centroids(::Lloyd, containers, centroids, X, r, idx)
+function chunk_update_centroids(::Lloyd, containers, centroids, X, weights, r, idx)
     # unpack containers for easier manipulations
     centroids_new = containers.centroids_new[idx]
     centroids_cnt = containers.centroids_cnt[idx]
@@ -118,9 +118,9 @@ function chunk_update_centroids(::Lloyd, containers, centroids, X, r, idx)
             min_dist = dist < min_dist ? dist : min_dist
         end
         labels[i] = label
-        centroids_cnt[label] += one(T)
+        centroids_cnt[label] += isnothing(weights) ? one(T) : weights[i]
         for j in axes(X, 1)
-            centroids_new[j, label] += X[j, i]
+            centroids_new[j, label] += isnothing(weights) ? X[j, i] : weights[i] * X[j, i]
         end
         J += min_dist
     end
