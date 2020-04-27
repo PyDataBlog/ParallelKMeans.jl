@@ -69,4 +69,30 @@ end
     @test res.iterations == 11
 end
 
+@testset "Elkan weights support" begin
+    Random.seed!(2020)
+    X = rand(3, 100)
+    weights = rand(100)
+
+    baseline = kmeans(Lloyd(), X, 10, weights; tol = 1e-10, verbose = false)
+
+    Random.seed!(2020)
+    X = rand(3, 100)
+    weights = rand(100)
+
+    res = kmeans(Elkan(), X, 10, weights; tol = 1e-10, verbose = false)
+    @test res.totalcost ≈ baseline.totalcost
+    @test res.converged
+    @test res.iterations == baseline.iterations
+
+    Random.seed!(2020)
+    X = rand(3, 100)
+    weights = rand(100)
+
+    res = kmeans(Elkan(), X, 10, weights; n_threads = 2, tol = 1e-10, verbose = false)
+    @test res.totalcost ≈ baseline.totalcost
+    @test res.converged
+    @test res.iterations == baseline.iterations
+end
+
 end # module

@@ -23,7 +23,7 @@ function kmeans!(alg::Hamerly, containers, X, k, weights;
                 k_init = "k-means++", max_iters = 300,
                 tol = eltype(X)(1e-6), verbose = false, init = nothing)
     nrow, ncol = size(X)
-    centroids = init == nothing ? smart_init(X, k, n_threads, init=k_init).centroids : deepcopy(init)
+    centroids = init == nothing ? smart_init(X, k, n_threads, weights, init=k_init).centroids : deepcopy(init)
 
     @parallelize n_threads ncol chunk_initialize(alg, containers, centroids, X, weights)
 

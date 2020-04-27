@@ -19,7 +19,7 @@ function kmeans!(alg::Lloyd, containers, X, k, weights;
                 k_init = "k-means++", max_iters = 300,
                 tol = eltype(design_matrix)(1e-6), verbose = false, init = nothing)
     nrow, ncol = size(X)
-    centroids = isnothing(init) ? smart_init(X, k, n_threads, init=k_init).centroids : deepcopy(init)
+    centroids = isnothing(init) ? smart_init(X, k, n_threads, weights, init=k_init).centroids : deepcopy(init)
 
     T = eltype(X)
     converged = false

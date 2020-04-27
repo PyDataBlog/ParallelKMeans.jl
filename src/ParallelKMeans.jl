@@ -17,6 +17,6 @@ include("mlj_interface.jl")
 include("coreset.jl")
 
 export kmeans
-export Lloyd, Hamerly, Elkan, Yinyang, Coreset
+export Lloyd, Hamerly, Elkan, Yinyang, 阴阳, Coreset
 
 end # module

@@ -11,7 +11,7 @@ using Random
     nrow, ncol = size(X)
     containers = ParallelKMeans.create_containers(Hamerly(), X, 3, nrow, ncol, 1)
 
-    ParallelKMeans.chunk_initialize(Hamerly(), containers, centroids, X, 1:ncol, 1)
+    ParallelKMeans.chunk_initialize(Hamerly(), containers, centroids, X, nothing, 1:ncol, 1)
     @test containers.lb == [18.0, 20.0, 5.0, 5.0]
     @test containers.ub == [0.0, 2.0, 0.0, 0.0]
 end
@@ -79,6 +79,32 @@ end
     @test res.totalcost ≈ 14.161985f0
     @test res.converged
     @test res.iterations == 11
+end
+
+@testset "Hamerly weights support" begin
+    Random.seed!(2020)
+    X = rand(3, 100)
+    weights = rand(100)
+
+    baseline = kmeans(Lloyd(), X, 10, weights; tol = 1e-10, verbose = false)
+
+    Random.seed!(2020)
+    X = rand(3, 100)
+    weights = rand(100)
+
+    res = kmeans(Hamerly(), X, 10, weights; tol = 1e-10, verbose = false)
+    @test res.totalcost ≈ baseline.totalcost
+    @test res.converged
+    @test res.iterations == baseline.iterations
+
+    Random.seed!(2020)
+    X = rand(3, 100)
+    weights = rand(100)
+
+    res = kmeans(Hamerly(), X, 10, weights; n_threads = 2, tol = 1e-10, verbose = false)
+    @test res.totalcost ≈ baseline.totalcost
+    @test res.converged
+    @test res.iterations == baseline.iterations
 end
 
 end # module
