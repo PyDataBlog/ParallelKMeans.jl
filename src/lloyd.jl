@@ -30,7 +30,7 @@ function kmeans!(alg::Lloyd, containers, X, k, weights;
 
     # Update centroids & labels with closest members until convergence
     while niters <= max_iters
-        @parallelize n_threads ncol chunk_update_centroids(alg, metric, containers, centroids, X, weights)
+        @parallelize n_threads ncol chunk_update_centroids(alg, containers, centroids, X, weights, metric)
         collect_containers(alg, containers, centroids, n_threads)
         J = sum(containers.J)
 
@@ -49,7 +49,7 @@ function kmeans!(alg::Lloyd, containers, X, k, weights;
         niters += 1
     end
 
-    @parallelize n_threads ncol sum_of_squares(metric, containers, X, containers.labels, centroids, weights)
+    @parallelize n_threads ncol sum_of_squares(containers, X, containers.labels, centroids, weights, metric)
     totalcost = sum(containers.sum_of_squares)
 
     # Terminate algorithm with the assumption that K-means has converged
@@ -104,7 +104,7 @@ function create_containers(::Lloyd, X, k, nrow, ncol, n_threads)
 end
 
 
-function chunk_update_centroids(::Lloyd, metric, containers, centroids, X, weights, r, idx)
+function chunk_update_centroids(::Lloyd, containers, centroids, X, weights, metric, r, idx)
     # unpack containers for easier manipulations
     centroids_new = containers.centroids_new[idx]
     centroids_cnt = containers.centroids_cnt[idx]
@@ -118,7 +118,7 @@ function chunk_update_centroids(::Lloyd, metric, containers, centroids, X, weigh
         min_dist = distance(metric, X, centroids, i, 1)
         label = 1
         for j in 2:size(centroids, 2)
-            dist = distance(metric, X, centroids, i, j)
+            dist = distance(metric, X, centroids, i, 1)
             label = dist < min_dist ? j : label
             min_dist = dist < min_dist ? dist : min_dist
         end

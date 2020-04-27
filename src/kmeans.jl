@@ -130,7 +130,7 @@ design matrix(x), centroids (centre), and the number of desired groups (k).
 
 A Float type representing the computed metric is returned.
 """
-function sum_of_squares(metric, containers, x, labels, centre, weights, r, idx)
+function sum_of_squares(containers, x, labels, centre, weights, metric, r, idx)
     s = zero(eltype(x))
 
     @inbounds for i in r

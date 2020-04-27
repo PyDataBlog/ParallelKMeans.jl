@@ -10,7 +10,7 @@ using Test
     r = fill(Inf, ncol)
     n_threads = 1
 
-    @parallelize n_threads ncol chunk_colwise(Euclidean(), r, X, y, 1, nothing)
+    @parallelize n_threads ncol chunk_colwise(r, X, y, 1, nothing, Euclidean())
     @test all(r .≈ [0.0, 13.0, 25.0])
 end
 
@@ -21,7 +21,7 @@ end
     r = fill(Inf, ncol)
     n_threads = 2
 
-    @parallelize n_threads ncol chunk_colwise(Euclidean(), r, X, y, 1, nothing)
+    @parallelize n_threads ncol chunk_colwise(r, X, y, 1, nothing, Euclidean())
 
     @test all(r .≈ [0.0, 13.0, 25.0])
 end
