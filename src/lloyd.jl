@@ -118,7 +118,7 @@ function chunk_update_centroids(::Lloyd, containers, centroids, X, weights, metr
         min_dist = distance(metric, X, centroids, i, 1)
         label = 1
         for j in 2:size(centroids, 2)
-            dist = distance(metric, X, centroids, i, 1)
+            dist = distance(metric, X, centroids, i, j)
             label = dist < min_dist ? j : label
             min_dist = dist < min_dist ? dist : min_dist
         end

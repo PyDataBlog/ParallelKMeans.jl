@@ -222,7 +222,7 @@ function calculate_centroids_movement(alg::Yinyang, containers, centroids)
     end
 end
 
-function chunk_update_centroids(alg, containers, centroids, X, weights, r, idx)
+function chunk_update_centroids(alg::Yinyang, containers, centroids, X, weights, r, idx)
     # unpack containers for easier manipulations
     centroids_new = containers.centroids_new[idx]
     centroids_cnt = containers.centroids_cnt[idx]
