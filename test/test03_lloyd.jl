@@ -118,7 +118,7 @@ end
     X = rand(3, 100)
 
     res = kmeans(X, 2, tol = 1e-16, metric=Cityblock())
-    @test res.totalcost ≈ 62.040452528953736
+    @test res.totalcost ≈ 62.04045252895372
     @test res.converged
 end
 

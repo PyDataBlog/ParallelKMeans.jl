@@ -2,6 +2,7 @@ module ParallelKMeans
 
 using StatsBase
 using Random
+using UnsafeArrays
 import MLJModelInterface
 import Base.Threads: @spawn
 import Distances

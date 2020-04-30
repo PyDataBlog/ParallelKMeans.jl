@@ -102,7 +102,7 @@ end
 
 Allocationless calculation of distance between vectors X1[:, i1] and X2[:, i2] defined by the supplied distance metric.
 """
-distance(metric, X1, X2, i1, i2) = evaluate(metric, X1[:, i1], X2[:, i2])
+@inline distance(metric, X1, X2, i1, i2) = evaluate(metric, uview(X1, :, i1), uview(X2, :, i2))
 
 
 """
