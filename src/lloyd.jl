@@ -48,7 +48,6 @@ function kmeans!(alg::Lloyd, containers, X, k, weights;
         J_previous = J
         niters += 1
     end
-
     @parallelize n_threads ncol sum_of_squares(containers, X, containers.labels, centroids, weights, metric)
     totalcost = sum(containers.sum_of_squares)
 

@@ -4,6 +4,8 @@ using ParallelKMeans
 using Test
 using StableRNGs
 using StatsBase
+using Distances
+
 
 @testset "basic kmeans" begin
     X = [1. 2. 4.;]
@@ -99,6 +101,25 @@ end
     @test res.totalcost ≈ 2.398132337904731
     @test res.converged
     @test res.iterations == 6
+end
+
+@testset "Lloyd metric support" begin
+    Random.seed!(2020)
+    X = [1. 2. 4.;]
+
+    res = kmeans(Lloyd(), X, 2; tol = 1e-16, metric=Cityblock())
+
+    @test res.assignments == [1, 1, 2]
+    @test res.centers == [1.5 4.0]
+    @test res.totalcost == 1.0
+    @test res.converged
+
+    Random.seed!(2020)
+    X = rand(3, 100)
+
+    res = kmeans(X, 2, tol = 1e-16, metric=Cityblock())
+    @test res.totalcost ≈ 62.040452528953736
+    @test res.converged
 end
 
 end # module

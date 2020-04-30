@@ -132,7 +132,6 @@ A Float type representing the computed metric is returned.
 """
 function sum_of_squares(containers, x, labels, centre, weights, metric, r, idx)
     s = zero(eltype(x))
-
     @inbounds for i in r
         s += isnothing(weights) ? distance(metric, x, centre, i, labels[i]) : weights[i] * distance(metric, x, centre, i, labels[i])
     end
@@ -181,7 +180,7 @@ function kmeans(alg::AbstractKMeansAlg, design_matrix, k;
 
     return kmeans!(alg, containers, design_matrix, k, weights, n_threads = n_threads,
                     k_init = k_init, max_iters = max_iters, tol = tol,
-                    verbose = verbose, init = init, rng = rng, metric = Euclidean())
+                    verbose = verbose, init = init, rng = rng, metric = metric)
 
 end
 
