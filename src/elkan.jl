@@ -18,16 +18,18 @@ kmeans(Elkan(), X, 3) # 3 clusters, Elkan algorithm
 """
 struct Elkan <: AbstractKMeansAlg end
 
+
 function kmeans!(alg::Elkan, containers, X, k, weights;
                 n_threads = Threads.nthreads(),
                 k_init = "k-means++", max_iters = 300,
                 tol = eltype(X)(1e-6), verbose = false,
-                init = nothing, rng = Random.GLOBAL_RNG)
+                init = nothing, rng = Random.GLOBAL_RNG, metric=Euclidean())
+
     nrow, ncol = size(X)
     centroids = init == nothing ? smart_init(X, k, n_threads, weights, rng, init=k_init).centroids : deepcopy(init)
 
-    update_containers(alg, containers, centroids, n_threads)
-    @parallelize n_threads ncol chunk_initialize(alg, containers, centroids, X, weights)
+    update_containers(alg, containers, centroids, n_threads, metric)
+    @parallelize n_threads ncol chunk_initialize(alg, containers, centroids, X, weights, metric)
 
     T = eltype(X)
     converged = false
@@ -38,7 +40,7 @@ function kmeans!(alg::Elkan, containers, X, k, weights;
     while niters < max_iters
         niters += 1
         # Core iteration
-        @parallelize n_threads ncol chunk_update_centroids(alg, containers, centroids, X, weights)
+        @parallelize n_threads ncol chunk_update_centroids(alg, containers, centroids, X, weights, metric)
 
         # Collect distributed containers (such as centroids_new, centroids_cnt)
         # in paper it is step 4
@@ -47,7 +49,7 @@ function kmeans!(alg::Elkan, containers, X, k, weights;
         J = sum(containers.ub)
 
         # auxiliary calculation, in paper it's d(c, m(c))
-        calculate_centroids_movement(alg, containers, centroids)
+        calculate_centroids_movement(alg, containers, centroids, metric)
 
         # lower and ounds update, in paper it's steps 5 and 6
         @parallelize n_threads ncol chunk_update_bounds(alg, containers, centroids)
@@ -67,11 +69,11 @@ function kmeans!(alg::Elkan, containers, X, k, weights;
         end
 
         # Step 1 in original paper, calulation of distance d(c, c')
-        update_containers(alg, containers, centroids, n_threads)
+        update_containers(alg, containers, centroids, n_threads, metric)
         J_previous = J
     end
 
-    @parallelize n_threads ncol sum_of_squares(containers, X, containers.labels, centroids, weights)
+    @parallelize n_threads ncol sum_of_squares(containers, X, containers.labels, centroids, weights, metric)
     totalcost = sum(containers.sum_of_squares)
 
     # Terminate algorithm with the assumption that K-means has converged
@@ -84,6 +86,7 @@ function kmeans!(alg::Elkan, containers, X, k, weights;
     # especially during GPU related development
     return KmeansResult(centroids, containers.labels, T[], Int[], T[], totalcost, niters, converged)
 end
+
 
 function create_containers(alg::Elkan, X, k, nrow, ncol, n_threads)
     T = eltype(X)
@@ -128,7 +131,8 @@ function create_containers(alg::Elkan, X, k, nrow, ncol, n_threads)
     )
 end
 
-function chunk_initialize(::Elkan, containers, centroids, X, weights, r, idx)
+
+function chunk_initialize(::Elkan, containers, centroids, X, weights, metric, r, idx)
     ub = containers.ub
     lb = containers.lb
     centroids_dist = containers.centroids_dist
@@ -138,7 +142,7 @@ function chunk_initialize(::Elkan, containers, centroids, X, weights, r, idx)
     T = eltype(X)
 
     @inbounds for i in r
-        min_dist = distance(X, centroids, i, 1)
+        min_dist = distance(metric, X, centroids, i, 1)
         label = 1
         lb[label, i] = min_dist
         for j in 2:size(centroids, 2)
@@ -146,7 +150,7 @@ function chunk_initialize(::Elkan, containers, centroids, X, weights, r, idx)
             if centroids_dist[j, label] > min_dist
                 lb[j, i] = min_dist
             else
-                dist = distance(X, centroids, i, j)
+                dist = distance(metric, X, centroids, i, j)
                 label = dist < min_dist ? j : label
                 min_dist = dist < min_dist ? dist : min_dist
                 lb[j, i] = dist
@@ -161,7 +165,8 @@ function chunk_initialize(::Elkan, containers, centroids, X, weights, r, idx)
     end
 end
 
-function update_containers(::Elkan, containers, centroids, n_threads)
+
+function update_containers(::Elkan, containers, centroids, n_threads, metric)
     # unpack containers for easier manipulations
     centroids_dist = containers.centroids_dist
     T = eltype(centroids)
@@ -170,7 +175,7 @@ function update_containers(::Elkan, containers, centroids, n_threads)
     @inbounds for j in axes(centroids_dist, 2)
         min_dist = T(Inf)
         for i in j + 1:k
-            d = distance(centroids, centroids, i, j)
+            d = distance(metric, centroids, centroids, i, j)
             centroids_dist[i, j] = d
             centroids_dist[j, i] = d
             min_dist = min_dist < d ? min_dist : d
@@ -189,7 +194,8 @@ function update_containers(::Elkan, containers, centroids, n_threads)
     return centroids_dist
 end
 
-function chunk_update_centroids(::Elkan, containers, centroids, X, weights, r, idx)
+
+function chunk_update_centroids(::Elkan, containers, centroids, X, weights, metric, r, idx)
     # unpack
     ub = containers.ub
     lb = containers.lb
@@ -214,14 +220,14 @@ function chunk_update_centroids(::Elkan, containers, centroids, X, weights, r, i
 
             # one calculation per iteration is enough
             if stale[i]
-                min_dist = distance(X, centroids, i, label)
+                min_dist = distance(metric, X, centroids, i, label)
                 lb[label, i] = min_dist
                 ub[i] = min_dist
                 stale[i] = false
             end
 
             if (min_dist > lb[j, i]) | (min_dist > centroids_dist[j, label])
-                dist = distance(X, centroids, i, j)
+                dist = distance(metric, X, centroids, i, j)
                 lb[j, i] = dist
                 if dist < min_dist
                     min_dist = dist
@@ -242,14 +248,16 @@ function chunk_update_centroids(::Elkan, containers, centroids, X, weights, r, i
     end
 end
 
-function calculate_centroids_movement(alg::Elkan, containers, centroids)
+
+function calculate_centroids_movement(alg::Elkan, containers, centroids, metric)
     p = containers.p
     centroids_new = containers.centroids_new[end]
 
     for i in axes(centroids, 2)
-        p[i] = distance(centroids, centroids_new, i, i)
+        p[i] = distance(metric, centroids, centroids_new, i, i)
     end
 end
+
 
 function chunk_update_bounds(alg, containers, centroids, r, idx)
     p = containers.p

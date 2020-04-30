@@ -1,6 +1,7 @@
 module TestElkan
 
 using ParallelKMeans
+using Distances
 using Test
 using StableRNGs
 
@@ -87,6 +88,26 @@ end
     @test res.totalcost ≈ baseline.totalcost
     @test res.converged
     @test res.iterations == baseline.iterations
+end
+
+
+@testset "Elkan metric support" begin
+    Random.seed!(2020)
+    X = [1. 2. 4.;]
+
+    res = kmeans(Elkan(), X, 2; tol = 1e-16, metric=Cityblock())
+
+    @test res.assignments == [1, 1, 2]
+    @test res.centers == [1.5 4.0]
+    @test res.totalcost == 1.0
+    @test res.converged
+
+    Random.seed!(2020)
+    X = rand(3, 100)
+
+    res = kmeans(Elkan(), X, 2, tol = 1e-16, metric=Cityblock())
+    @test res.totalcost ≈ 62.04045252895372
+    @test res.converged
 end
 
 end # module
