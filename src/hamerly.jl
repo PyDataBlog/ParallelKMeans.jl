@@ -22,11 +22,12 @@ function kmeans!(alg::Hamerly, containers, X, k, weights;
                 n_threads = Threads.nthreads(),
                 k_init = "k-means++", max_iters = 300,
                 tol = eltype(X)(1e-6), verbose = false,
-                init = nothing, rng = Random.GLOBAL_RNG)
+                init = nothing, rng = Random.GLOBAL_RNG, metric=Euclidean())
+
     nrow, ncol = size(X)
     centroids = init == nothing ? smart_init(X, k, n_threads, weights, rng, init=k_init).centroids : deepcopy(init)
 
-    @parallelize n_threads ncol chunk_initialize(alg, containers, centroids, X, weights)
+    @parallelize n_threads ncol chunk_initialize(alg, containers, centroids, X, weights, metric)
 
     T = eltype(X)
     converged = false
@@ -37,8 +38,8 @@ function kmeans!(alg::Hamerly, containers, X, k, weights;
     # Update centroids & labels with closest members until convergence
     while niters < max_iters
         niters += 1
-        update_containers(alg, containers, centroids, n_threads)
-        @parallelize n_threads ncol chunk_update_centroids(alg, containers, centroids, X, weights)
+        update_containers(alg, containers, centroids, n_threads, metric)
+        @parallelize n_threads ncol chunk_update_centroids(alg, containers, centroids, X, weights, metric)
         collect_containers(alg, containers, n_threads)
 
         J = sum(containers.ub)
@@ -61,7 +62,7 @@ function kmeans!(alg::Hamerly, containers, X, k, weights;
         J_previous = J
     end
 
-    @parallelize n_threads ncol sum_of_squares(containers, X, containers.labels, centroids, weights)
+    @parallelize n_threads ncol sum_of_squares(containers, X, containers.labels, centroids, weights, metric)
     totalcost = sum(containers.sum_of_squares)
 
     # Terminate algorithm with the assumption that K-means has converged
@@ -74,6 +75,7 @@ function kmeans!(alg::Hamerly, containers, X, k, weights;
     # especially during GPU related development
     return KmeansResult(centroids, containers.labels, T[], Int[], T[], totalcost, niters, converged)
 end
+
 
 function create_containers(alg::Hamerly, X, k, nrow, ncol, n_threads)
     T = eltype(X)
@@ -115,18 +117,19 @@ function create_containers(alg::Hamerly, X, k, nrow, ncol, n_threads)
     )
 end
 
+
 """
     chunk_initialize(alg::Hamerly, containers, centroids, design_matrix, r, idx)
 
 Initial calulation of all bounds and points labeling.
 """
-function chunk_initialize(alg::Hamerly, containers, centroids, X, weights, r, idx)
+function chunk_initialize(alg::Hamerly, containers, centroids, X, weights, metric, r, idx)
     T = eltype(X)
     centroids_cnt = containers.centroids_cnt[idx]
     centroids_new = containers.centroids_new[idx]
 
     @inbounds for i in r
-        label = point_all_centers!(containers, centroids, X, i)
+        label = point_all_centers!(containers, centroids, X, i, metric)
         centroids_cnt[label] += isnothing(weights) ? one(T) : weights[i]
         for j in axes(X, 1)
             centroids_new[j, label] += isnothing(weights) ? X[j, i] : weights[i] * X[j, i]
@@ -134,24 +137,26 @@ function chunk_initialize(alg::Hamerly, containers, centroids, X, weights, r, id
     end
 end
 
+
 """
     update_containers(::Hamerly, containers, centroids, n_threads)
 
 Calculates minimum distances from centers to each other.
 """
-function update_containers(::Hamerly, containers, centroids, n_threads)
+function update_containers(::Hamerly, containers, centroids, n_threads, metric)
     T = eltype(centroids)
     s = containers.s
     s .= T(Inf)
     @inbounds for i in axes(centroids, 2)
         for j in i+1:size(centroids, 2)
-            d = distance(centroids, centroids, i, j)
+            d = distance(metric, centroids, centroids, i, j)
             d = T(0.25)*d
             s[i] = s[i] > d ? d : s[i]
             s[j] = s[j] > d ? d : s[j]
         end
     end
 end
+
 
 """
     chunk_update_centroids(::Hamerly, containers, centroids, X, r, idx)
@@ -160,7 +165,7 @@ Detailed description of this function can be found in the original paper. It ite
 all points and tries to skip some calculation using known upper and lower bounds of distances
 from point to centers. If it fails to skip than it fall back to generic `point_all_centers!` function.
 """
-function chunk_update_centroids(alg::Hamerly, containers, centroids, X, weights, r, idx)
+function chunk_update_centroids(alg::Hamerly, containers, centroids, X, weights, metric, r, idx)
 
     # unpack containers for easier manipulations
     centroids_new = containers.centroids_new[idx]
@@ -178,10 +183,10 @@ function chunk_update_centroids(alg::Hamerly, containers, centroids, X, weights,
         if ub[i] > m
             # tighten upper bound
             label = labels[i]
-            ub[i] = distance(X, centroids, i, label)
+            ub[i] = distance(metric, X, centroids, i, label)
             # second bound test
             if ub[i] > m
-                label_new = point_all_centers!(containers, centroids, X, i)
+                label_new = point_all_centers!(containers, centroids, X, i, metric)
                 if label != label_new
                     labels[i] = label_new
                     centroids_cnt[label_new] += isnothing(weights) ? one(T) : weights[i]
@@ -196,12 +201,13 @@ function chunk_update_centroids(alg::Hamerly, containers, centroids, X, weights,
     end
 end
 
+
 """
     point_all_centers!(containers, centroids, X, i)
 
 Calculates new labels and upper and lower bounds for all points.
 """
-function point_all_centers!(containers, centroids, X, i)
+function point_all_centers!(containers, centroids, X, i, metric)
     ub = containers.ub
     lb = containers.lb
     labels = containers.labels
@@ -211,7 +217,7 @@ function point_all_centers!(containers, centroids, X, i)
     min_distance2 = T(Inf)
     label = 1
     @inbounds for k in axes(centroids, 2)
-        dist = distance(X, centroids, i, k)
+        dist = distance(metric, X, centroids, i, k)
         if min_distance > dist
             label = k
             min_distance2 = min_distance
@@ -227,6 +233,7 @@ function point_all_centers!(containers, centroids, X, i)
 
     return label
 end
+
 
 """
     move_centers(::Hamerly, containers, centroids)
@@ -249,6 +256,7 @@ function move_centers(::Hamerly, containers, centroids)
     end
 end
 
+
 """
     chunk_update_bounds(alg::Hamerly, containers, r1, r2, pr1, pr2, r, idx)
 
@@ -261,7 +269,7 @@ function chunk_update_bounds(alg::Hamerly, containers, r1, r2, pr1, pr2, r, idx)
     labels = containers.labels
     T = eltype(containers.ub)
 
-    # Since bounds are squred distance, `sqrt` is used to make corresponding estimation, unlike
+    # Since bounds are squared distance, `sqrt` is used to make corresponding estimation, unlike
     # the original paper, where usual metric is used.
     #
     # Using notation from original paper, `u` is upper bound and `a` is `labels`, so
@@ -287,6 +295,7 @@ function chunk_update_bounds(alg::Hamerly, containers, r1, r2, pr1, pr2, r, idx)
         end
     end
 end
+
 
 """
     double_argmax(p)
