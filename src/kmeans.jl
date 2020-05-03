@@ -199,3 +199,7 @@ function collect_containers(::AbstractKMeansAlg, containers, n_threads)
         @inbounds containers.centroids_new[end] .= containers.centroids_new[end] ./ containers.centroids_cnt[end]'
     end
 end
+
+# Special center co-efficent dispatched on Euclidean or different metrics supported by Distances.jl
+centers_coefficient(::Euclidean) = 0.25
+centers_coefficient(::Distances.Metric) = 0.5
