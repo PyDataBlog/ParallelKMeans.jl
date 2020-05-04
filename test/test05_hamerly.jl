@@ -118,9 +118,15 @@ end
     Random.seed!(2020)
     X = rand(3, 100)
 
-    res = kmeans(Hamerly(), X, 2, tol = 1e-16, metric=Cityblock())
-    @test res.totalcost ≈ 62.04045252895372
-    @test res.converged
+    baseline = kmeans(Lloyd(), X, 2, tol = 1e-16, metric=Cityblock())
+
+    Random.seed!(2020)
+    X = rand(3, 100)
+
+    res = kmeans(Hamerly(), X, 2; tol = 1e-16, metric=Cityblock())
+    @test res.totalcost ≈ baseline.totalcost
+    @test res.converged == baseline.converged
+    @test res.iterations == baseline.iterations
 end
 
 end # module

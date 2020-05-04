@@ -51,13 +51,15 @@ pkg> add ParallelKMeans
 The few (and selected) brave ones can simply grab the current experimental features by simply adding the experimental branch to your development environment after invoking the package manager with `]`:
 
 ```julia
-dev git@github.com:PyDataBlog/ParallelKMeans.jl.git
+pkg> add ParallelKMeans#experimental
 ```
 
-Don't forget to checkout the experimental branch and you are good to go with bleeding edge features and breakages!
+You are good to go with bleeding edge features and breakages!
 
-```bash
-git checkout experimental
+To revert to a stable version, you can simply run:
+
+```julia
+pkg> free ParallelKMeans
 ```
 
 ## Features
@@ -78,6 +80,7 @@ git checkout experimental
 - [X] Support of MLJ Random generation hyperparameter.
 - [ ] Support for other distance metrics supported by [Distances.jl](https://github.com/JuliaStats/Distances.jl#supported-distances).
 - [ ] Implementation of [Geometric methods to accelerate k-means algorithm](http://cs.baylor.edu/~hamerly/papers/sdm2016_rysavy_hamerly.pdf).
+- [ ] Support of MLJ Random generation hyperparameter.
 - [ ] Native support for tabular data inputs outside of MLJModels' interface.
 - [ ] Refactoring and finalization of API design.
 - [ ] GPU support.

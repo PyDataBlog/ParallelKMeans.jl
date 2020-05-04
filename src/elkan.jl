@@ -266,7 +266,7 @@ function chunk_update_bounds(alg, containers, centroids, r, idx)
     stale = containers.stale
     labels = containers.labels
     T = eltype(centroids)
-
+    # TODO: Add metric support with multiple dispatch
     @inbounds for i in r
         for j in axes(centroids, 2)
             lb[j, i] = lb[j, i] > p[j] ? lb[j, i] + p[j] - T(2)*sqrt(abs(lb[j, i]*p[j])) : zero(T)

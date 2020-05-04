@@ -66,6 +66,7 @@ ________________________________________________________________________________
 - Support for multi-theading implementation of K-Means clustering algorithm.
 - Kmeans++ initialization for faster and better convergence.
 - Implementation of all the variants of the K-Means algorithm.
+- Supported interface as an [MLJ](https://github.com/alan-turing-institute/MLJ.jl#available-models) model.
 
 _________________________________________________________________________________________________________
 

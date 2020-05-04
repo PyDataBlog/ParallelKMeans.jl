@@ -46,7 +46,7 @@ function kmeans!(alg::Lloyd, containers, X, k, weights;
         end
 
         J_previous = J
-        niters += 1
+        niters += 1  # TODO: Investigate the potential bug in number of iterations
     end
     @parallelize n_threads ncol sum_of_squares(containers, X, containers.labels, centroids, weights, metric)
     totalcost = sum(containers.sum_of_squares)

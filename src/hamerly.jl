@@ -43,10 +43,10 @@ function kmeans!(alg::Hamerly, containers, X, k, weights;
         collect_containers(alg, containers, n_threads)
 
         J = sum(containers.ub)
-        move_centers(alg, containers, centroids)
+        move_centers(alg, containers, centroids, metric)
 
         r1, r2, pr1, pr2 = double_argmax(p)
-        @parallelize n_threads ncol chunk_update_bounds(alg, containers, r1, r2, pr1, pr2)
+        @parallelize n_threads ncol chunk_update_bounds(alg, containers, r1, r2, pr1, pr2, metric)
 
         if verbose
             # Show progress and terminate if J stops decreasing as specified by the tolerance level.
@@ -241,15 +241,14 @@ end
 Calculates new positions of centers and distance they have moved. Results are stored
 in `centroids` and `p` respectively.
 """
-function move_centers(::Hamerly, containers, centroids)
+function move_centers(::Hamerly, containers, centroids, metric)
     centroids_new = containers.centroids_new[end]
     p = containers.p
     T = eltype(centroids)
 
     @inbounds for i in axes(centroids, 2)
-        d = zero(T)
+        d = distance(metric, centroids, centroids_new, i, i)
         for j in axes(centroids, 1)
-            d += (centroids[j, i] - centroids_new[j, i])^2
             centroids[j, i] = centroids_new[j, i]
         end
         p[i] = d
@@ -258,11 +257,12 @@ end
 
 
 """
-    chunk_update_bounds(alg::Hamerly, containers, r1, r2, pr1, pr2, r, idx)
+    chunk_update_bounds(alg::Hamerly, containers, r1, r2, pr1, pr2, metric::Euclidean, r, idx)
 
-Updates upper and lower bounds of point distance to the centers, with regard to the centers movement.
+Updates upper and lower bounds of point distance to the centers, with regard to the centers movement
+when metric is Euclidean.
 """
-function chunk_update_bounds(alg::Hamerly, containers, r1, r2, pr1, pr2, r, idx)
+function chunk_update_bounds(alg::Hamerly, containers, r1, r2, pr1, pr2, metric::Euclidean, r, idx)
     p = containers.p
     ub = containers.ub
     lb = containers.lb
@@ -293,6 +293,28 @@ function chunk_update_bounds(alg::Hamerly, containers, r1, r2, pr1, pr2, r, idx)
         else
             lb[i] = lb[i] <= pr1 ? zero(T) : lb[i] + pr1 - T(2)*sqrt(abs(pr1*lb[i]))
         end
+    end
+end
+
+
+"""
+    chunk_update_bounds(alg::Hamerly, containers, r1, r2, pr1, pr2, metric::Metric, r, idx)
+
+Updates upper and lower bounds of point distance to the centers, with regard to the centers movement
+when metric is Euclidean.
+"""
+function chunk_update_bounds(alg::Hamerly, containers, r1, r2, pr1, pr2, metric::Metric, r, idx)
+    p = containers.p
+    ub = containers.ub
+    lb = containers.lb
+    labels = containers.labels
+    T = eltype(containers.ub)
+    # Using notation from original paper, `u` is upper bound and `a` is `labels`, so
+    # `u[i] -> u[i] + p[a[i]]`
+    @inbounds for i in r
+        label = labels[i]
+        ub[i] += p[label]
+        lb[i] -= r1 == label ? pr2 : pr1
     end
 end
 
