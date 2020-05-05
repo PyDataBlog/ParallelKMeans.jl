@@ -18,7 +18,7 @@ kmeans(Hamerly(), X, 3) # 3 clusters, Hamerly algorithm
 struct Hamerly <: AbstractKMeansAlg end
 
 
-function kmeans!(alg::Hamerly, containers, X, k, weights;
+function kmeans!(alg::Hamerly, containers, X, k, weights=nothing, metric=Euclidean();
                 n_threads = Threads.nthreads(),
                 k_init = "k-means++", max_iters = 300,
                 tol = eltype(X)(1e-6), verbose = false,

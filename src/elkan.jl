@@ -19,7 +19,7 @@ kmeans(Elkan(), X, 3) # 3 clusters, Elkan algorithm
 struct Elkan <: AbstractKMeansAlg end
 
 
-function kmeans!(alg::Elkan, containers, X, k, weights;
+function kmeans!(alg::Elkan, containers, X, k, weights=nothing, metric=Euclidean();
                 n_threads = Threads.nthreads(),
                 k_init = "k-means++", max_iters = 300,
                 tol = eltype(X)(1e-6), verbose = false,

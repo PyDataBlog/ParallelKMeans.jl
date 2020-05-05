@@ -14,12 +14,13 @@ found in `kmeans`.
 Argument `containers` represent algorithm specific containers, such as labels, intermidiate
 centroids and so on, which are used during calculations.
 """
-function kmeans!(alg::Lloyd, containers, X, k, weights;
+function kmeans!(alg::Lloyd, containers, X, k, weights=nothing, metric=Euclidean();
                 n_threads = Threads.nthreads(),
                 k_init = "k-means++", max_iters = 300,
                 tol = eltype(design_matrix)(1e-6), verbose = false,
                 init = nothing, rng = Random.GLOBAL_RNG, metric=Euclidean())
 
+    # Get dimensions of the input data
     nrow, ncol = size(X)
     centroids = isnothing(init) ? smart_init(X, k, n_threads, weights, rng, init=k_init).centroids : deepcopy(init)
 
@@ -48,6 +49,7 @@ function kmeans!(alg::Lloyd, containers, X, k, weights;
         J_previous = J
         niters += 1  # TODO: Investigate the potential bug in number of iterations
     end
+
     @parallelize n_threads ncol sum_of_squares(containers, X, containers.labels, centroids, weights, metric)
     totalcost = sum(containers.sum_of_squares)
 

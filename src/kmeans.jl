@@ -168,6 +168,7 @@ alternatively one can use `rand` to choose random points for init.
 
 A `KmeansResult` structure representing labels, centroids, and sum_squares is returned.
 """
+<<<<<<< HEAD
 function kmeans(alg::AbstractKMeansAlg, design_matrix, k;
                 weights = nothing,
                 n_threads = Threads.nthreads(),
@@ -175,12 +176,28 @@ function kmeans(alg::AbstractKMeansAlg, design_matrix, k;
                 tol = eltype(design_matrix)(1e-6), verbose = false,
                 init = nothing, rng = Random.GLOBAL_RNG, metric = Euclidean())
 
+=======
+function kmeans(alg::AbstractKMeansAlg, design_matrix, k, weights = nothing;
+                n_threads = Threads.nthreads(), k_init = "k-means++", max_iters = 300,
+                tol = eltype(design_matrix)(1e-6), verbose = false, init = nothing, metric=Euclidean())
+
+    # Get dimensions of the input data
+>>>>>>> Moved metric internally as a positional arg
     nrow, ncol = size(design_matrix)
+
+    # Create containers based on the dimensions and specifications
     containers = create_containers(alg, design_matrix, k, nrow, ncol, n_threads)
 
+<<<<<<< HEAD
     return kmeans!(alg, containers, design_matrix, k, weights, n_threads = n_threads,
                     k_init = k_init, max_iters = max_iters, tol = tol,
                     verbose = verbose, init = init, rng = rng, metric = metric)
+=======
+    # Dispatch based on the specified algorithm
+    return kmeans!(alg, containers, design_matrix, k, weights, metric;
+                   n_threads = n_threads, k_init = k_init, max_iters = max_iters,
+                   tol = tol, verbose = verbose, init = init)
+>>>>>>> Moved metric internally as a positional arg
 
 end
 
