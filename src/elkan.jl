@@ -284,12 +284,13 @@ function chunk_update_bounds(alg, containers, centroids, metric::Metric, r, idx)
     stale = containers.stale
     labels = containers.labels
     T = eltype(centroids)
-    # TODO: Update the metric support for non eucledian metric
+
     @inbounds for i in r
         for j in axes(centroids, 2)
-            lb[j, i] = lb[j, i] > p[j] ? lb[j, i] + p[j] - T(2)*sqrt(abs(lb[j, i]*p[j])) : zero(T)
+            lb[j, i] = lb[j, i] > p[j] ? lb[j, i] - p[j] : zero(T)
         end
         stale[i] = true
-        ub[i] += p[labels[i]] + T(2)*sqrt(abs(ub[i]*p[labels[i]]))
+        ub[i] += p[labels[i]]
     end
+
 end
