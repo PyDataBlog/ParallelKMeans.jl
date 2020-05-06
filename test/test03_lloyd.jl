@@ -2,7 +2,7 @@ module TestLloyd
 
 using ParallelKMeans
 using Test
-using Random
+using StableRNGs
 using StatsBase
 
 @testset "basic kmeans" begin
@@ -28,78 +28,77 @@ end
 end
 
 @testset "singlethread linear separation" begin
-    Random.seed!(2020)
+    rng = StableRNG(2020)
 
-    X = rand(3, 100)
-    res = kmeans(X, 3; n_threads = 1, tol = 1e-6, verbose = false)
+    X = rand(rng, 3, 100)
+    res = kmeans(X, 3; n_threads = 1, tol = 1e-6, verbose = false, rng = rng)
 
-    @test res.totalcost ≈ 14.16198704459199
+    @test res.totalcost ≈ 14.133433380466027
     @test res.converged
-    @test res.iterations == 11
+    @test res.iterations == 5
 end
 
 @testset "multithread linear separation quasi two threads" begin
-    Random.seed!(2020)
+    rng = StableRNG(2020)
 
-    X = rand(3, 100)
-    res = kmeans(X, 3; n_threads = 2, tol = 1e-6, verbose = false)
+    X = rand(rng, 3, 100)
+    res = kmeans(X, 3; n_threads = 2, tol = 1e-6, verbose = false, rng = rng)
 
-    @test res.totalcost ≈ 14.16198704459199
+    @test res.totalcost ≈ 14.133433380466027
     @test res.converged
 end
 
 @testset "Lloyd Float32 support" begin
-    Random.seed!(2020)
+    rng = StableRNG(2020)
+    X = Float32.(rand(rng, 3, 100))
 
-    X = Float32.(rand(3, 100))
-    res = kmeans(Lloyd(), X, 3; n_threads = 1, tol = 1e-6, verbose = false)
-
-    @test typeof(res.totalcost) == Float32
-    @test res.totalcost ≈ 14.161985f0
-    @test res.converged
-    @test res.iterations == 11
-
-    Random.seed!(2020)
-
-    X = Float32.(rand(3, 100))
-    res = kmeans(Lloyd(), X, 3; n_threads = 2, tol = 1e-6, verbose = false)
+    res = kmeans(Lloyd(), X, 3; n_threads = 1, tol = 1e-6, verbose = false, rng = rng)
 
     @test typeof(res.totalcost) == Float32
-    @test res.totalcost ≈ 14.161985f0
+    @test res.totalcost ≈ 14.133433f0
     @test res.converged
-    @test res.iterations == 11
+    @test res.iterations == 5
+
+    rng = StableRNG(2020)
+    X = Float32.(rand(rng, 3, 100))
+    res = kmeans(Lloyd(), X, 3; n_threads = 2, tol = 1e-6, verbose = false, rng = rng)
+
+    @test typeof(res.totalcost) == Float32
+    @test res.totalcost ≈ 14.133433f0
+    @test res.converged
+    @test res.iterations == 5
 end
 
 @testset "Lloyd test weighted X" begin
-    Random.seed!(2020)
-    X = rand(3, 100)
-    weights = rand(100)
+    rng = StableRNG(2020)
+    X = rand(rng, 3, 100)
+    weights = rand(rng, 100)
 
-    init = sample(1:100, 10, replace = false)
+    init = sample(rng, 1:100, 10, replace = false)
     init = X[:, init]
 
-    res = kmeans(Lloyd(), X, 10, weights; init = init, n_threads = 1, tol = 1e-10, max_iters = 100, verbose = false)
-    @test res.totalcost ≈ 2.726538026486045
+    res = kmeans(Lloyd(), X, 10; weights = weights, init = init, n_threads = 1, tol = 1e-10, max_iters = 100, verbose = false, rng = rng)
+    @test res.totalcost ≈ 2.3774024861034575
     @test res.converged
     @test res.iterations == 9
 
-    Random.seed!(2020)
-    X = rand(3, 100)
-    weights = rand(100)
+    rng = StableRNG(2020)
+    X = rand(rng, 3, 100)
+    weights = rand(rng, 100)
 
-    res = kmeans(Lloyd(), X, 10, weights; n_threads = 1, tol = 1e-10, max_iters = 100, verbose = false)
-    @test res.totalcost ≈ 2.75774704578635
+    res = kmeans(Lloyd(), X, 10; weights = weights, n_threads = 1, tol = 1e-10, max_iters = 100, verbose = false, rng = rng)
+    @test res.totalcost ≈ 2.398132337904731
     @test res.converged
-    @test res.iterations == 9
+    @test res.iterations == 6
 
-    Random.seed!(2020)
-    X = rand(3, 100)
-    weights = rand(100)
+    rng = StableRNG(2020)
+    X = rand(rng, 3, 100)
+    weights = rand(rng, 100)
 
-    res = kmeans(Lloyd(), X, 10, weights; n_threads = 1, tol = 1e-10, max_iters = 100, verbose = false)
-    @test res.totalcost ≈ 2.75774704578635
+    res = kmeans(Lloyd(), X, 10; weights = weights, n_threads = 1, tol = 1e-10, max_iters = 100, verbose = false, rng = rng)
+    @test res.totalcost ≈ 2.398132337904731
     @test res.converged
-    @test res.iterations == 9
+    @test res.iterations == 6
 end
 
 end # module

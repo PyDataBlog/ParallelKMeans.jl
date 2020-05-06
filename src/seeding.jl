@@ -1,12 +1,4 @@
-"""
-    spliiter(n, k)
 
-Internal utility function, splits 1:n sequence to k chunks of approximately same size.
-"""
-function splitter(n, k)
-    xz = Int.(ceil.(range(0, n, length = k+1)))
-    return [xz[i]+1:xz[i+1] for i in 1:k]
-end
 
 
 """
@@ -37,8 +29,8 @@ of centroids from X used if any other string is attempted.
 
 A named tuple representing centroids and indices respecitively is returned.
 """
-function smart_init(X, k, n_threads = Threads.nthreads(), weights = nothing;
-        init = "k-means++")
+function smart_init(X, k, n_threads = Threads.nthreads(), weights = nothing,
+                    rng = Random.GLOBAL_RNG; init = "k-means++")
 
     nrow, ncol = size(X)
     T = eltype(X)
@@ -52,7 +44,7 @@ function smart_init(X, k, n_threads = Threads.nthreads(), weights = nothing;
         # TODO relax constraints on distances, may be should
         # define `X` as X::AbstractArray{T} where {T <: Number}
         # and use this T for all calculations.
-        rand_idx = isnothing(weights) ? rand(1:ncol) : wsample(1:ncol, weights)
+        rand_idx = isnothing(weights) ? rand(rng, 1:ncol) : wsample(rng, 1:ncol, weights)
         rand_indices[1] = rand_idx
         @inbounds for j in axes(X, 1)
             centroids[j, 1] = X[j, rand_idx]
@@ -69,7 +61,7 @@ function smart_init(X, k, n_threads = Threads.nthreads(), weights = nothing;
         for i = 2:k
             # choose the next centroid, the probability for each data point to be chosen
             # is directly proportional to its squared distance from the nearest centroid
-            r_idx = wsample(1:ncol, distances)
+            r_idx = wsample(rng, 1:ncol, distances)
             rand_indices[i] = r_idx
             @inbounds for j in axes(X, 1)
                 centroids[j, i] = X[j, r_idx]
@@ -86,7 +78,7 @@ function smart_init(X, k, n_threads = Threads.nthreads(), weights = nothing;
 
     else
         # randomly select points from the design matrix as the initial centroids
-        rand_indices .= sample(1:ncol, k, replace = false)
+        rand_indices .= sample(rng, 1:ncol, k, replace = false)
         centroids .= @view X[:, rand_indices]
     end
 

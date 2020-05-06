@@ -74,12 +74,12 @@ git checkout experimental
 - [X] Full Implementation of Triangle inequality based on [Elkan - 2003 Using the Triangle Inequality to Accelerate K-Means"](https://www.aaai.org/Papers/ICML/2003/ICML03-022.pdf).
 - [X] Implementation of [Yinyang K-Means: A Drop-In Replacement of the Classic K-Means with Consistent Speedup](https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/ding15.pdf).
 - [X] Implementation of [Coresets](http://proceedings.mlr.press/v51/lucic16-supp.pdf).
-- [ ] Implementation of [Geometric methods to accelerate k-means algorithm](http://cs.baylor.edu/~hamerly/papers/sdm2016_rysavy_hamerly.pdf).
 - [X] Support for weighted K-means.
+- [X] Support of MLJ Random generation hyperparameter.
 - [ ] Support for other distance metrics supported by [Distances.jl](https://github.com/JuliaStats/Distances.jl#supported-distances).
-- [ ] Support of MLJ Random generation hyperparameter.
+- [ ] Implementation of [Geometric methods to accelerate k-means algorithm](http://cs.baylor.edu/~hamerly/papers/sdm2016_rysavy_hamerly.pdf).
 - [ ] Native support for tabular data inputs outside of MLJModels' interface.
-- [ ] Refactoring and finalizaiton of API desgin.
+- [ ] Refactoring and finalization of API design.
 - [ ] GPU support.
 - [ ] Distributed calculations support.
 - [ ] Optimization of code base.
@@ -207,6 +207,7 @@ ________________________________________________________________________________
 - 0.1.4 Bug fixes.
 - 0.1.5 Added `Yinyang` algorithm.
 - 0.1.6 Added support for weighted k-means; Added `Coreset` algorithm; improved support for different types of the design matrix.
+- 0.1.7 Added `Yinyang` and `Coreset` support in MLJ interface; added `weights` support in MLJ; added RNG seed support in MLJ interface and through all algorithms.
 
 ## Contributing
 

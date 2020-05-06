@@ -2,32 +2,29 @@ module TestCoreset
 
 using ParallelKMeans
 using Test
-using Random
+using StableRNGs
 
 @testset "basic coresets" begin
-    Random.seed!(2020)
-    X = rand(3, 100)
+    rng = StableRNG(2020)
+    X = rand(rng, 3, 100)
+    rng_orig = deepcopy(rng)
 
-    res = kmeans(Coreset(20), X, 10, tol = 1e-10, verbose = false, n_threads = 1)
+    baseline = kmeans(Coreset(20), X, 10, tol = 1e-10, verbose = false, n_threads = 1, rng = rng)
+    @test baseline.converged
+    @test baseline.iterations == 4
+    @test baseline.totalcost ≈ 7.870212645990514
+
+    rng = deepcopy(rng_orig)
+    res = kmeans(Coreset(20), X, 10, tol = 1e-10, verbose = false, n_threads = 2, rng = rng)
     @test res.converged
-    @test res.iterations == 4
-    @test res.totalcost ≈ 7.667588608178126
+    @test res.iterations == baseline.iterations
+    @test res.totalcost ≈ baseline.totalcost
 
-    Random.seed!(2020)
-    X = rand(3, 100)
-
-    res = kmeans(Coreset(20), X, 10, tol = 1e-10, verbose = false, n_threads = 2)
+    rng = deepcopy(rng_orig)
+    res = kmeans(Coreset(20, Lloyd()), X, 10, tol = 1e-10, verbose = false, n_threads = 1, rng = rng)
     @test res.converged
-    @test res.iterations == 4
-    @test res.totalcost ≈ 7.667588608178126
-
-    Random.seed!(2020)
-    X = rand(3, 100)
-
-    res = kmeans(Coreset(20, Lloyd()), X, 10, tol = 1e-10, verbose = false, n_threads = 1)
-    @test res.converged
-    @test res.iterations == 4
-    @test res.totalcost ≈ 7.667588608178126
+    @test res.iterations == baseline.iterations
+    @test res.totalcost ≈ baseline.totalcost
 end
 
 @testset "Coreset possible interfaces" begin
