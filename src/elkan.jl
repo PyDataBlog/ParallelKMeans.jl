@@ -287,7 +287,7 @@ function chunk_update_bounds(alg, containers, centroids, metric::Metric, r, idx)
 
     @inbounds for i in r
         for j in axes(centroids, 2)
-            lb[j, i] = lb[j, i] > p[j] ? lb[j, i] - p[j] : zero(T)
+            lb[j, i] -= p[j]
         end
         stale[i] = true
         ub[i] += p[labels[i]]
