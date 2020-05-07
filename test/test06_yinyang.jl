@@ -3,6 +3,8 @@ module TestYinyang
 using ParallelKMeans
 using Test
 using StableRNGs
+using Distances
+
 
 @testset "basic kmeans Yinyang" begin
     X = [1. 2. 4.;]
@@ -194,6 +196,31 @@ end
 
     alg = Yinyang(false)
     @test !alg.auto
+end
+
+@testset "Yinyang metric support" begin
+    rng = StableRNG(2020)
+    X = [1. 2. 4.;]
+
+    res = kmeans(Yinyang(), X, 2; tol = 1e-16, metric=Cityblock(), rng = rng)
+
+    @test res.assignments == [2, 2, 1]
+    @test res.centers == [4.0 1.5]
+    @test res.totalcost == 1.0
+    @test res.converged
+
+    rng = StableRNG(2020)
+    X = rand(3, 100)
+    rng_orig = deepcopy(rng)
+
+    baseline = kmeans(Lloyd(), X, 2, tol = 1e-16, metric=Cityblock(), rng = rng)
+
+    rng = deepcopy(rng_orig)
+    res = kmeans(Yinyang(), X, 2; tol = 1e-16, metric=Cityblock(), rng = rng)
+
+    @test res.totalcost ≈ baseline.totalcost
+    @test res.converged == baseline.converged
+    @test res.iterations == baseline.iterations
 end
 
 end # module

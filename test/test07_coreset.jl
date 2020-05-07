@@ -3,6 +3,8 @@ module TestCoreset
 using ParallelKMeans
 using Test
 using StableRNGs
+using Distances
+
 
 @testset "basic coresets" begin
     rng = StableRNG(2020)
@@ -43,6 +45,18 @@ end
 
     alg = Coreset(Hamerly())
     @test alg.alg == Hamerly()
+end
+
+@testset "Coreset metric support" begin
+    rng = StableRNG(2020)
+    X = [1. 2. 4.;]
+
+    res = kmeans(Coreset(), X, 2; tol = 1e-16, metric=Cityblock(), rng = rng)
+
+    @test res.assignments == [2, 2, 1]
+    @test res.centers == [4.0 1.4865168535972686]
+    @test res.totalcost == 1.0
+    @test res.converged
 end
 
 end # module
