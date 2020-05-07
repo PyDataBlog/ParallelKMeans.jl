@@ -18,7 +18,7 @@ function kmeans!(alg::Lloyd, containers, X, k, weights=nothing, metric=Euclidean
                 n_threads = Threads.nthreads(),
                 k_init = "k-means++", max_iters = 300,
                 tol = eltype(design_matrix)(1e-6), verbose = false,
-                init = nothing, rng = Random.GLOBAL_RNG, metric=Euclidean())
+                init = nothing, rng = Random.GLOBAL_RNG)
 
     # Get dimensions of the input data
     nrow, ncol = size(X)
@@ -69,8 +69,9 @@ kmeans(design_matrix, k;
     n_threads = Threads.nthreads(),
     k_init = "k-means++", max_iters = 300, tol = 1e-6,
     verbose = false, init = nothing, rng = Random.GLOBAL_RNG, metric = Euclidean()) =
-        kmeans(Lloyd(), design_matrix, k; weights = weights, n_threads = n_threads, k_init = k_init, max_iters = max_iters, tol = tol,
-            verbose = verbose, init = init, rng = rng, metric = metric)
+        kmeans(Lloyd(), design_matrix, k; weights = weights,
+               n_threads = n_threads, k_init = k_init, max_iters = max_iters, tol = tol,
+               verbose = verbose, init = init, rng = rng, metric = metric)
 
 
 """

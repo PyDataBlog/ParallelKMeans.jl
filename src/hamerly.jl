@@ -22,7 +22,7 @@ function kmeans!(alg::Hamerly, containers, X, k, weights=nothing, metric=Euclide
                 n_threads = Threads.nthreads(),
                 k_init = "k-means++", max_iters = 300,
                 tol = eltype(X)(1e-6), verbose = false,
-                init = nothing, rng = Random.GLOBAL_RNG, metric=Euclidean())
+                init = nothing, rng = Random.GLOBAL_RNG)
 
     nrow, ncol = size(X)
     centroids = init == nothing ? smart_init(X, k, n_threads, weights, rng, init=k_init).centroids : deepcopy(init)

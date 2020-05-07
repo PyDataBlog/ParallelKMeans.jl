@@ -104,21 +104,22 @@ end
 end
 
 @testset "Lloyd metric support" begin
-    Random.seed!(2020)
+    rng = StableRNG(2020)
     X = [1. 2. 4.;]
 
-    res = kmeans(Lloyd(), X, 2; tol = 1e-16, metric=Cityblock())
+    res = kmeans(Lloyd(), X, 2; tol = 1e-16, metric=Cityblock(), rng = rng)
 
-    @test res.assignments == [1, 1, 2]
-    @test res.centers == [1.5 4.0]
+    @test res.assignments == [2, 2, 1]
+    @test res.centers == [4.0 1.5]
     @test res.totalcost == 1.0
     @test res.converged
 
-    Random.seed!(2020)
-    X = rand(3, 100)
+    rng = StableRNG(2020)
+    X = rand(rng, 3, 100)
 
-    res = kmeans(X, 2, tol = 1e-16, metric=Cityblock())
-    @test res.totalcost ≈ 62.04045252895372
+    res = kmeans(X, 2; tol = 1e-16, metric = Cityblock(), rng = rng)
+    @test res.totalcost ≈ 60.893492629945044
+    @test res.iterations == 6
     @test res.converged
 end
 
