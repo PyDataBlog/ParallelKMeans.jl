@@ -1,33 +1,41 @@
 # Expose all instances of user specified structs and package artifcats.
+const MMI = MLJModelInterface
+
 const ParallelKMeans_Desc = "Parallel & lightning fast implementation of all available variants of the KMeans clustering algorithm
                              in native Julia. Compatible with Julia 1.3+"
 
 # availalbe variants for reference
 const MLJDICT = Dict(:Lloyd => Lloyd(),
                      :Hamerly => Hamerly(),
-                     :Elkan => Elkan())
+                     :Elkan => Elkan(),
+					 :Yinyang => Yinyang(),
+					 :Coreset => Coreset(),
+					 :阴阳 => Coreset())
 
 ####
 #### MODEL DEFINITION
 ####
 
 mutable struct KMeans <: MMI.Unsupervised
-    algo::Symbol
+    algo::Union{Symbol, AbstractKMeansAlg}
     k_init::String
     k::Int
     tol::Float64
     max_iters::Int
     copy::Bool
     threads::Int
+    rng::Union{AbstractRNG, Int}
+	weights
     init
 end
 
 
-function KMeans(; algo=:Hamerly, k_init="k-means++",
-                k=3, tol=1e-6, max_iters=300, copy=true,
-                threads=Threads.nthreads(), init=nothing)
+function KMeans(; algo = :Hamerly, k_init = "k-means++",
+                k = 3, tol = 1e-6, max_iters = 300, copy = true,
+                threads = Threads.nthreads(), init = nothing,
+				rng = Random.GLOBAL_RNG, weights = nothing)
 
-    model   = KMeans(algo, k_init, k, tol, max_iters, copy, threads, init)
+    model   = KMeans(algo, k_init, k, tol, max_iters, copy, threads, rng, weights, init)
     message = MMI.clean!(model)
     isempty(message) || @warn message
     return model
@@ -35,12 +43,9 @@ end
 
 
 function MMI.clean!(m::KMeans)
-    warning = String[]
+	warning = String[]
 
-    if !(m.algo ∈ keys(MLJDICT))
-        push!(warning, "Unsupported KMeans variant. Defaulting to Hamerly algorithm.")
-        m.algo = :Hamerly
-	end
+	m.algo = clean_algo(m.algo, warning)
 
     if !(m.k_init ∈ ["k-means++", "random"])
         push!(warning, "Only \"k-means++\" or \"random\" seeding algorithms are supported. Defaulting to k-means++ seeding.")
@@ -89,15 +94,23 @@ function MMI.fit(m::KMeans, verbosity::Int, X)
         DMatrix = convert(Array{Float64, 2}, MMI.matrix(X, transpose=true))
     end
 
-    # lookup available algorithms
-    algo = MLJDICT[m.algo]  # select algo
+	# setup rng
+	rng = get_rng(m.rng)
+
+	if !isnothing(m.weights) && (size(DMatrix, 2) != length(m.weights))
+		@warn "Size mismatch, number of points in X $(size(DMatrix, 2)) not equal weights length $(length(m.weights)). Weights parameter ignored."
+		weights = nothing
+	else
+
+		weights = m.weights
+	end
 
     # fit model and get results
     verbose = verbosity > 0  # Display fitting operations if verbosity > 0
-    result = ParallelKMeans.kmeans(algo, DMatrix, m.k;
-                                      n_threads = m.threads, k_init=m.k_init,
-                                      max_iters=m.max_iters, tol=m.tol, init=m.init,
-                                      verbose=verbose)
+    result = ParallelKMeans.kmeans(m.algo, DMatrix, m.k;
+                                      n_threads = m.threads, k_init = m.k_init,
+                                      max_iters = m.max_iters, tol = m.tol, init = m.init,
+                                      rng = rng, verbose = verbose, weights = weights)
 
     cluster_labels = MMI.categorical(1:m.k)
     fitresult = (centers = result.centers, labels = cluster_labels, converged = result.converged)
@@ -192,3 +205,20 @@ MMI.metadata_model(KMeans,
     weights = false,
     descr   = ParallelKMeans_Desc,
 	path	= "ParallelKMeans.KMeans")
+
+####
+#### Auxiliary functions
+####
+
+get_rng(rng::Int) = MersenneTwister(rng)
+get_rng(rng) = rng
+
+clean_algo(algo::AbstractKMeansAlg, warning) = algo
+function clean_algo(algo::Symbol, warning)
+	if !(algo ∈ keys(MLJDICT))
+		push!(warning, "Unsupported KMeans variant. Defaulting to Hamerly algorithm.")
+		return MLJDICT[:Hamerly]
+	else
+		return MLJDICT[algo]
+	end
+end

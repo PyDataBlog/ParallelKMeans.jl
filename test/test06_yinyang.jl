@@ -2,7 +2,7 @@ module TestYinyang
 
 using ParallelKMeans
 using Test
-using Random
+using StableRNGs
 
 @testset "basic kmeans Yinyang" begin
     X = [1. 2. 4.;]
@@ -27,82 +27,92 @@ end
 end
 
 @testset "Yinyang singlethread linear separation" begin
-    Random.seed!(2020)
+    rng = StableRNG(2020)
 
-    X = rand(3, 100)
-    res = kmeans(Yinyang(false), X, 3; n_threads = 1, tol = 1e-10, max_iters = 10, verbose = false)
+    X = rand(rng, 3, 100)
+    res = kmeans(Yinyang(false), X, 3; n_threads = 1, tol = 1e-10, max_iters = 4, verbose = false, rng = rng)
 
-    @test res.totalcost ≈ 14.16198704459199
+    @test res.totalcost ≈ 14.133433380466027
     @test !res.converged
-    @test res.iterations == 10
+    @test res.iterations == 4
 end
 
 @testset "Yinyang multithread linear separation quasi two threads" begin
-    Random.seed!(2020)
+    rng = StableRNG(2020)
 
-    X = rand(3, 100)
-    res = kmeans(Yinyang(false), X, 3; n_threads = 2, tol = 1e-6, verbose = false)
+    X = rand(rng, 3, 100)
+    res = kmeans(Yinyang(false), X, 3; n_threads = 2, tol = 1e-6, verbose = false, rng = rng)
 
-    @test res.totalcost ≈ 14.16198704459199
+    @test res.totalcost ≈ 14.133433380466027
     @test res.converged
 end
 
 @testset "Yinyang different modes" begin
-    Random.seed!(2020)
-    X = rand(3, 100)
-    init = ParallelKMeans.smart_init(X, 20).centroids
-    baseline = kmeans(Lloyd(), X, 20, init = init, tol = 1e-10, n_threads = 1, verbose = false, max_iters = 1000)
+    rng = StableRNG(2020)
 
-    res = kmeans(Yinyang(false), X, 20, init = init, tol = 1e-10, n_threads = 1, verbose = false, max_iters = 1000)
+    X = rand(rng, 3, 100)
+    init = ParallelKMeans.smart_init(X, 20, 1, nothing, rng).centroids
+    rng_orig = deepcopy(rng)
+    baseline = kmeans(Lloyd(), X, 20, init = init, tol = 1e-10, n_threads = 1, verbose = false, max_iters = 1000, rng = rng)
+
+    rng = deepcopy(rng_orig)
+    res = kmeans(Yinyang(false), X, 20, init = init, tol = 1e-10, n_threads = 1, verbose = false, max_iters = 1000, rng = rng)
     @test res.converged
     @test res.totalcost ≈ baseline.totalcost
     @test res.assignments == baseline.assignments
     @test res.centers ≈ baseline.centers
     @test res.iterations == baseline.iterations
 
-    res = kmeans(Yinyang(), X, 20, init = init, tol = 1e-10, n_threads = 1, verbose = false, max_iters = 1000)
+    rng = deepcopy(rng_orig)
+    res = kmeans(Yinyang(), X, 20, init = init, tol = 1e-10, n_threads = 1, verbose = false, max_iters = 1000, rng = rng)
     @test res.converged
     @test res.totalcost ≈ baseline.totalcost
     @test res.assignments == baseline.assignments
     @test res.centers ≈ baseline.centers
     @test res.iterations == baseline.iterations
 
-    res = kmeans(Yinyang(10), X, 20, init = init, tol = 1e-10, n_threads = 1, verbose = false, max_iters = 1000)
+    rng = deepcopy(rng_orig)
+    res = kmeans(Yinyang(10), X, 20, init = init, tol = 1e-10, n_threads = 1, verbose = false, max_iters = 1000, rng = rng)
     @test res.converged
     @test res.totalcost ≈ baseline.totalcost
     @test res.assignments == baseline.assignments
     @test res.centers ≈ baseline.centers
     @test res.iterations == baseline.iterations
 
-    res = kmeans(Yinyang(7), X, 20, init = init, tol = 1e-10, n_threads = 1, verbose = false, max_iters = 1000)
+    rng = deepcopy(rng_orig)
+    res = kmeans(Yinyang(7), X, 20, init = init, tol = 1e-10, n_threads = 1, verbose = false, max_iters = 1000, rng = rng)
     @test res.converged
     @test res.totalcost ≈ baseline.totalcost
     @test res.assignments == baseline.assignments
     @test res.centers ≈ baseline.centers
     @test res.iterations == baseline.iterations
 
-    res = kmeans(Yinyang(false), X, 20, init = init, tol = 1e-10, n_threads = 2, verbose = false, max_iters = 1000)
+    rng = deepcopy(rng_orig)
+    res = kmeans(Yinyang(false), X, 20, init = init, tol = 1e-10, n_threads = 2, verbose = false, max_iters = 1000, rng = rng)
     @test res.converged
     @test res.totalcost ≈ baseline.totalcost
     @test res.assignments == baseline.assignments
     @test res.centers ≈ baseline.centers
     @test res.iterations == baseline.iterations
 
-    res = kmeans(Yinyang(), X, 20, init = init, tol = 1e-10, n_threads = 2, verbose = false, max_iters = 1000)
+    rng = deepcopy(rng_orig)
+    res = kmeans(Yinyang(), X, 20, init = init, tol = 1e-10, n_threads = 2, verbose = false, max_iters = 1000, rng = rng)
     @test res.converged
     @test res.totalcost ≈ baseline.totalcost
     @test res.assignments == baseline.assignments
     @test res.centers ≈ baseline.centers
     @test res.iterations == baseline.iterations
 
-    res = kmeans(Yinyang(10), X, 20, init = init, tol = 1e-10, n_threads = 2, verbose = false, max_iters = 1000)
+    rng = deepcopy(rng_orig)
+    res = kmeans(Yinyang(10), X, 20, init = init, tol = 1e-10, n_threads = 2, verbose = false, max_iters = 1000, rng = rng)
     @test res.converged
     @test res.totalcost ≈ baseline.totalcost
     @test res.assignments == baseline.assignments
     @test res.centers ≈ baseline.centers
     @test res.iterations == baseline.iterations
 
-    res = kmeans(Yinyang(7), X, 20, init = init, tol = 1e-10, n_threads = 2, verbose = false, max_iters = 1000)
+    rng = deepcopy(rng_orig)
+    res = kmeans(Yinyang(7), X, 20, init = init, tol = 1e-10, n_threads = 2, verbose = false, max_iters = 1000, rng = rng)
     @test res.converged
     @test res.totalcost ≈ baseline.totalcost
     @test res.assignments == baseline.assignments
@@ -111,14 +121,14 @@ end
 end
 
 @testset "Yinyang Float32 support" begin
-    Random.seed!(2020)
-    X = Float32.(rand(3, 100))
-    baseline = kmeans(Lloyd(), X, 20, tol = 1e-10, n_threads = 1, verbose = false, max_iters = 1000)
+    rng = StableRNG(2020)
 
-    Random.seed!(2020)
-    X = Float32.(rand(3, 100))
+    X = Float32.(rand(rng, 3, 100))
+    rng_orig = deepcopy(rng)
+    baseline = kmeans(Lloyd(), X, 20, tol = 1e-10, n_threads = 1, verbose = false, max_iters = 1000, rng = rng)
 
-    res = kmeans(Yinyang(5), X, 20, tol = 1e-10, n_threads = 1, verbose = false, max_iters = 1000)
+    rng = deepcopy(rng_orig)
+    res = kmeans(Yinyang(5), X, 20, tol = 1e-10, n_threads = 1, verbose = false, max_iters = 1000, rng = rng)
     @test res.converged
     @test res.totalcost ≈ baseline.totalcost
     @test res.assignments == baseline.assignments
@@ -126,10 +136,8 @@ end
     @test res.iterations == baseline.iterations
     @test typeof(res.totalcost) == Float32
 
-    Random.seed!(2020)
-    X = Float32.(rand(3, 100))
-
-    res = kmeans(Yinyang(5), X, 20, tol = 1e-10, n_threads = 2, verbose = false, max_iters = 1000)
+    rng = deepcopy(rng_orig)
+    res = kmeans(Yinyang(5), X, 20, tol = 1e-10, n_threads = 2, verbose = false, max_iters = 1000, rng = rng)
     @test res.converged
     @test res.totalcost ≈ baseline.totalcost
     @test res.assignments == baseline.assignments
@@ -139,44 +147,32 @@ end
 end
 
 @testset "Yinyang weights support" begin
-    Random.seed!(2020)
-    X = rand(3, 100)
-    weights = rand(100)
+    rng = StableRNG(2020)
+    X = rand(rng, 3, 100)
+    weights = rand(rng, 100)
+    rng_orig = deepcopy(rng)
+    baseline = kmeans(Lloyd(), X, 10; weights = weights, tol = 1e-10, verbose = false, rng = rng)
 
-    baseline = kmeans(Lloyd(), X, 10, weights; tol = 1e-10, verbose = false)
-
-    Random.seed!(2020)
-    X = rand(3, 100)
-    weights = rand(100)
-
-    res = kmeans(Yinyang(), X, 10, weights; tol = 1e-10, verbose = false)
+    rng = deepcopy(rng_orig)
+    res = kmeans(Yinyang(), X, 10, weights = weights, tol = 1e-10, verbose = false, rng = rng)
     @test res.totalcost ≈ baseline.totalcost
     @test res.converged
     @test res.iterations == baseline.iterations
 
-    Random.seed!(2020)
-    X = rand(3, 100)
-    weights = rand(100)
-
-    res = kmeans(Yinyang(), X, 10, weights; n_threads = 2, tol = 1e-10, verbose = false)
+    rng = deepcopy(rng_orig)
+    res = kmeans(Yinyang(), X, 10, weights = weights, n_threads = 2, tol = 1e-10, verbose = false, rng = rng)
     @test res.totalcost ≈ baseline.totalcost
     @test res.converged
     @test res.iterations == baseline.iterations
 
-    Random.seed!(2020)
-    X = rand(3, 100)
-    weights = rand(100)
-
-    res = kmeans(Yinyang(5), X, 10, weights; tol = 1e-10, verbose = false)
+    rng = deepcopy(rng_orig)
+    res = kmeans(Yinyang(5), X, 10, weights = weights, tol = 1e-10, verbose = false, rng = rng)
     @test res.totalcost ≈ baseline.totalcost
     @test res.converged
     @test res.iterations == baseline.iterations
 
-    Random.seed!(2020)
-    X = rand(3, 100)
-    weights = rand(100)
-
-    res = kmeans(Yinyang(5), X, 10, weights; n_threads = 2, tol = 1e-10, verbose = false)
+    rng = deepcopy(rng_orig)
+    res = kmeans(Yinyang(5), X, 10, weights = weights, n_threads = 2, tol = 1e-10, verbose = false, rng = rng)
     @test res.totalcost ≈ baseline.totalcost
     @test res.converged
     @test res.iterations == baseline.iterations

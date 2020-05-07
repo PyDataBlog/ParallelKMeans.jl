@@ -50,12 +50,13 @@ Yinyang(; group_size = 7, auto = true) = Yinyang(auto, group_size)
 function kmeans!(alg::Yinyang, containers, X, k, weights;
                 n_threads = Threads.nthreads(),
                 k_init = "k-means++", max_iters = 300,
-                tol = 1e-6, verbose = false, init = nothing)
+                tol = 1e-6, verbose = false,
+                init = nothing, rng = Random.GLOBAL_RNG)
     nrow, ncol = size(X)
-    centroids = init == nothing ? smart_init(X, k, n_threads, weights, init=k_init).centroids : deepcopy(init)
+    centroids = init == nothing ? smart_init(X, k, n_threads, weights, rng, init=k_init).centroids : deepcopy(init)
 
     # create initial groups of centers, step 1 in original paper
-    initialize(alg, containers, centroids, n_threads)
+    initialize(alg, containers, centroids, rng, n_threads)
     # construct initial bounds, step 2
     @parallelize n_threads ncol chunk_initialize(alg, containers, centroids, X, weights)
     collect_containers(alg, containers, n_threads)
@@ -169,14 +170,16 @@ function create_containers(alg::Yinyang, X, k, nrow, ncol, n_threads)
     )
 end
 
-function initialize(alg::Yinyang, containers, centroids, n_threads)
+function initialize(alg::Yinyang, containers, centroids, rng, n_threads)
     groups = containers.groups
     indices = containers.indices
     if length(groups) == 1
         groups[1] = axes(centroids, 2)
         indices .= 1
     else
-        init_clusters = kmeans(Lloyd(), centroids, length(groups), max_iters = 5, tol = 1e-10, verbose = false)
+        init_clusters = kmeans(Lloyd(), centroids, length(groups),
+                                max_iters = 5, tol = 1e-10,
+                                verbose = false, rng = rng)
         perm = sortperm(init_clusters.assignments)
         indices .= init_clusters.assignments[perm]
         groups .= rangify(indices)

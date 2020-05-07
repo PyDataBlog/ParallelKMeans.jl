@@ -41,6 +41,16 @@ struct KmeansResult{C<:AbstractMatrix{<:AbstractFloat},D<:Real,WC<:Real} <: Clus
 end
 
 """
+    spliiter(n, k)
+
+Internal utility function, splits 1:n sequence to k chunks of approximately same size.
+"""
+function splitter(n, k)
+    xz = Int.(ceil.(range(0, n, length = k+1)))
+    return [xz[i]+1:xz[i+1] for i in 1:k]
+end
+
+"""
     @parallelize(n_threads, ncol, f)
 
 Parallelize function and run it over n_threads. Function should require following conditions:
@@ -120,7 +130,8 @@ function sum_of_squares(containers, x, labels, centre, weights, r, idx)
 end
 
 """
-    Kmeans([alg::AbstractKMeansAlg,] design_matrix, k; n_threads = nthreads(), k_init="k-means++", max_iters=300, tol=1e-6, verbose=true)
+    kmeans([alg::AbstractKMeansAlg,] design_matrix, k; n_threads = nthreads(),
+    k_init="k-means++", max_iters=300, tol=1e-6, verbose=true, rng = Random.GLOBAL_RNG)
 
 This main function employs the K-means algorithm to cluster all examples
 in the training data (design_matrix) into k groups using either the
@@ -146,16 +157,18 @@ alternatively one can use `rand` to choose random points for init.
 
 A `KmeansResult` structure representing labels, centroids, and sum_squares is returned.
 """
-function kmeans(alg::AbstractKMeansAlg, design_matrix, k, weights = nothing;
+function kmeans(alg::AbstractKMeansAlg, design_matrix, k;
+                weights = nothing,
                 n_threads = Threads.nthreads(),
                 k_init = "k-means++", max_iters = 300,
-                tol = eltype(design_matrix)(1e-6), verbose = false, init = nothing)
+                tol = eltype(design_matrix)(1e-6), verbose = false,
+                init = nothing, rng = Random.GLOBAL_RNG)
     nrow, ncol = size(design_matrix)
     containers = create_containers(alg, design_matrix, k, nrow, ncol, n_threads)
 
     return kmeans!(alg, containers, design_matrix, k, weights, n_threads = n_threads,
                     k_init = k_init, max_iters = max_iters, tol = tol,
-                    verbose = verbose, init = init)
+                    verbose = verbose, init = init, rng = rng)
 end
 
 

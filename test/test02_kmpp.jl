@@ -1,24 +1,23 @@
 module TestKMPP
 
 using ParallelKMeans
+using ParallelKMeans: smart_init
 using Test
-using Random
+using StableRNGs
 
 # resulting indices obtained from `Clustering` implementation of kmpp
 @testset "singlethread kmpp" begin
-    Random.seed!(1980)
-    design_matrix = rand(10, 1000)
+    rng = StableRNG(2020)
+    design_matrix = rand(rng, 10, 1000)
 
-    Random.seed!(2020)
-    @test ParallelKMeans.smart_init(design_matrix, 10, 1).indices == [33, 931, 853, 940, 926, 528, 644, 552, 460, 433]
+    @test smart_init(design_matrix, 10, 1, nothing, rng).indices == [303, 123, 234, 773, 46, 312, 528, 124, 393, 910]
 end
 
 @testset "multithread kmpp" begin
-    Random.seed!(1980)
-    design_matrix = rand(10, 1000)
+    rng = StableRNG(2020)
+    design_matrix = rand(rng, 10, 1000)
 
-    Random.seed!(2020)
-    @test ParallelKMeans.smart_init(design_matrix, 10, 2).indices == [33, 931, 853, 940, 926, 528, 644, 552, 460, 433]
+    @test smart_init(design_matrix, 10, 2, nothing, rng).indices == [303, 123, 234, 773, 46, 312, 528, 124, 393, 910]
 end
 
 end # module

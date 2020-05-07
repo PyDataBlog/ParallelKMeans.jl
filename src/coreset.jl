@@ -38,9 +38,10 @@ Coreset(alg::AbstractKMeansAlg) = Coreset(100, alg)
 function kmeans!(alg::Coreset, containers, X, k, weights;
                 n_threads = Threads.nthreads(),
                 k_init = "k-means++", max_iters = 300,
-                tol = eltype(design_matrix)(1e-6), verbose = false, init = nothing)
+                tol = eltype(design_matrix)(1e-6), verbose = false,
+                init = nothing, rng = Random.GLOBAL_RNG)
     nrow, ncol = size(X)
-    centroids = isnothing(init) ? smart_init(X, k, n_threads, init=k_init).centroids : deepcopy(init)
+    centroids = isnothing(init) ? smart_init(X, k, n_threads, weights, rng, init=k_init).centroids : deepcopy(init)
 
     T = eltype(X)
     # Steps 2-4 of the paper's algorithm 3
@@ -54,14 +55,14 @@ function kmeans!(alg::Coreset, containers, X, k, weights;
     @parallelize n_threads ncol chunk_update_sensitivity(alg, containers)
 
     # sample from containers.s
-    coreset_ids = wsample(1:ncol, containers.s, alg.m)
+    coreset_ids = wsample(rng, 1:ncol, containers.s, alg.m)
     coreset = X[:, coreset_ids]
     # create new weights as 1/s[i]
     coreset_weights = one(T) ./ @view containers.s[coreset_ids]
 
     # run usual kmeans for new set with new weights.
-    res = kmeans(alg.alg, coreset, k, coreset_weights, tol = tol, max_iters = max_iters,
-        verbose = verbose, init = centroids, n_threads = n_threads)
+    res = kmeans(alg.alg, coreset, k, weights = coreset_weights, tol = tol, max_iters = max_iters,
+        verbose = verbose, init = centroids, n_threads = n_threads, rng = rng)
 
     @parallelize n_threads ncol chunk_apply(alg, containers, res.centers, X, weights)
 

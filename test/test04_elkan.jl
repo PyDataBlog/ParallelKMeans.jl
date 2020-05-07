@@ -2,7 +2,7 @@ module TestElkan
 
 using ParallelKMeans
 using Test
-using Random
+using StableRNGs
 
 @testset "basic kmeans elkan" begin
     X = [1. 2. 4.;]
@@ -27,69 +27,63 @@ end
 end
 
 @testset "elkan singlethread linear separation" begin
-    Random.seed!(2020)
+    rng = StableRNG(2020)
 
-    X = rand(3, 100)
-    res = kmeans(Elkan(), X, 3; n_threads = 1, tol = 1e-10, max_iters = 10, verbose = false)
+    X = rand(rng, 3, 100)
+    res = kmeans(Elkan(), X, 3; n_threads = 1, tol = 1e-10, max_iters = 4, verbose = false, rng = rng)
 
-    @test res.totalcost ≈ 14.16198704459199
+    @test res.totalcost ≈ 14.133433380466027
     @test !res.converged
-    @test res.iterations == 10
+    @test res.iterations == 4
 end
 
 @testset "elkan multithread linear separation quasi two threads" begin
-    Random.seed!(2020)
+    rng = StableRNG(2020)
 
-    X = rand(3, 100)
-    res = kmeans(Elkan(), X, 3; n_threads = 2, tol = 1e-6, verbose = false)
+    X = rand(rng, 3, 100)
+    res = kmeans(Elkan(), X, 3; n_threads = 2, tol = 1e-6, verbose = false, rng = rng)
 
-    @test res.totalcost ≈ 14.16198704459199
+    @test res.totalcost ≈ 14.133433380466027
     @test res.converged
 end
 
 @testset "Elkan Float32 support" begin
-    Random.seed!(2020)
+    rng = StableRNG(2020)
 
-    X = Float32.(rand(3, 100))
-    res = kmeans(Elkan(), X, 3; n_threads = 1, tol = 1e-6, verbose = false)
+    X = Float32.(rand(rng, 3, 100))
 
-    @test typeof(res.totalcost) == Float32
-    @test res.totalcost ≈ 14.161985f0
-    @test res.converged
-    @test res.iterations == 11
-
-    Random.seed!(2020)
-
-    X = Float32.(rand(3, 100))
-    res = kmeans(Elkan(), X, 3; n_threads = 2, tol = 1e-6, verbose = false)
+    res = kmeans(Elkan(), X, 3; n_threads = 1, tol = 1e-6, verbose = false, rng = rng)
 
     @test typeof(res.totalcost) == Float32
-    @test res.totalcost ≈ 14.161985f0
+    @test res.totalcost ≈ 14.133433f0
     @test res.converged
-    @test res.iterations == 11
+    @test res.iterations == 5
+
+    rng = StableRNG(2020)
+    X = Float32.(rand(rng, 3, 100))
+    res = kmeans(Elkan(), X, 3; n_threads = 2, tol = 1e-6, verbose = false, rng = rng)
+
+    @test typeof(res.totalcost) == Float32
+    @test res.totalcost ≈ 14.133433f0
+    @test res.converged
+    @test res.iterations == 5
 end
 
 @testset "Elkan weights support" begin
-    Random.seed!(2020)
-    X = rand(3, 100)
-    weights = rand(100)
+    rng = StableRNG(2020)
+    X = rand(rng, 3, 100)
+    weights = rand(rng, 100)
+    rng_orig = deepcopy(rng)
+    baseline = kmeans(Lloyd(), X, 10; weights = weights, tol = 1e-10, verbose = false, rng = rng)
 
-    baseline = kmeans(Lloyd(), X, 10, weights; tol = 1e-10, verbose = false)
-
-    Random.seed!(2020)
-    X = rand(3, 100)
-    weights = rand(100)
-
-    res = kmeans(Elkan(), X, 10, weights; tol = 1e-10, verbose = false)
+    rng = deepcopy(rng_orig)
+    res = kmeans(Elkan(), X, 10; weights = weights, tol = 1e-10, verbose = false, rng = rng)
     @test res.totalcost ≈ baseline.totalcost
     @test res.converged
     @test res.iterations == baseline.iterations
 
-    Random.seed!(2020)
-    X = rand(3, 100)
-    weights = rand(100)
-
-    res = kmeans(Elkan(), X, 10, weights; n_threads = 2, tol = 1e-10, verbose = false)
+    rng = deepcopy(rng_orig)
+    res = kmeans(Elkan(), X, 10; weights = weights, n_threads = 2, tol = 1e-10, verbose = false, rng = rng)
     @test res.totalcost ≈ baseline.totalcost
     @test res.converged
     @test res.iterations == baseline.iterations

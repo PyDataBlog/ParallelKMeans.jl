@@ -17,9 +17,10 @@ centroids and so on, which are used during calculations.
 function kmeans!(alg::Lloyd, containers, X, k, weights;
                 n_threads = Threads.nthreads(),
                 k_init = "k-means++", max_iters = 300,
-                tol = eltype(design_matrix)(1e-6), verbose = false, init = nothing)
+                tol = eltype(design_matrix)(1e-6), verbose = false,
+                init = nothing, rng = Random.GLOBAL_RNG)
     nrow, ncol = size(X)
-    centroids = isnothing(init) ? smart_init(X, k, n_threads, weights, init=k_init).centroids : deepcopy(init)
+    centroids = isnothing(init) ? smart_init(X, k, n_threads, weights, rng, init=k_init).centroids : deepcopy(init)
 
     T = eltype(X)
     converged = false
@@ -61,12 +62,13 @@ function kmeans!(alg::Lloyd, containers, X, k, weights;
     return KmeansResult(centroids, containers.labels, T[], Int[], T[], totalcost, niters, converged)
 end
 
-kmeans(design_matrix, k, weights = nothing;
+kmeans(design_matrix, k;
+    weights = nothing,
     n_threads = Threads.nthreads(),
     k_init = "k-means++", max_iters = 300, tol = 1e-6,
-    verbose = false, init = nothing) =
-        kmeans(Lloyd(), design_matrix, k, weights; n_threads = n_threads, k_init = k_init, max_iters = max_iters, tol = tol,
-            verbose = verbose, init = init)
+    verbose = false, init = nothing, rng = Random.GLOBAL_RNG) =
+        kmeans(Lloyd(), design_matrix, k; weights = weights, n_threads = n_threads, k_init = k_init, max_iters = max_iters, tol = tol,
+            verbose = verbose, init = init, rng = rng)
 
 """
     create_containers(::Lloyd, k, nrow, ncol, n_threads)

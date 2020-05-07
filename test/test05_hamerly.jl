@@ -3,7 +3,7 @@ module TestHamerly
 using ParallelKMeans
 using ParallelKMeans: chunk_initialize, double_argmax
 using Test
-using Random
+using StableRNGs
 
 @testset "initialize" begin
     X = permutedims([1.0 2; 2 1; 4 5; 6 6])
@@ -22,86 +22,80 @@ end
 
 @testset "singlethread linear separation" begin
     # with the same amount of iterations answer should be the same as in Lloyd case
-    Random.seed!(2020)
+    rng = StableRNG(2020)
 
-    X = rand(3, 100)
-    res = kmeans(Hamerly(), X, 3; n_threads = 1, tol = 1e-10, max_iters = 10, verbose = false)
+    X = rand(rng, 3, 100)
+    rng_orig = deepcopy(rng)
+    res = kmeans(Hamerly(), X, 3; n_threads = 1, tol = 1e-10, max_iters = 4, verbose = false, rng = rng)
 
-    @test res.totalcost ≈ 14.16198704459199
+    @test res.totalcost ≈ 14.133433380466027
     @test !res.converged
-    @test res.iterations == 10
+    @test res.iterations == 4
 
-    Random.seed!(2020)
-    X = rand(3, 100)
-    res = kmeans(Hamerly(), X, 3; n_threads = 1, tol = 1e-10, max_iters = 1000, verbose = false)
+    rng = deepcopy(rng_orig)
+    res = kmeans(Hamerly(), X, 3; n_threads = 1, tol = 1e-10, max_iters = 1000, verbose = false, rng = rng)
 
-    @test res.totalcost ≈ 14.161987044591992
+    @test res.totalcost ≈ 14.133433380466027
     @test res.converged
-    @test res.iterations == 11
+    @test res.iterations == 5
 end
 
 @testset "multithread linear separation quasi two threads" begin
-    Random.seed!(2020)
+    rng = StableRNG(2020)
 
-    X = rand(3, 100)
-    res = kmeans(Hamerly(), X, 3; n_threads = 2, tol = 1e-10, max_iters = 10, verbose = false)
+    X = rand(rng, 3, 100)
+    rng_orig = deepcopy(rng)
+    res = kmeans(Hamerly(), X, 3; n_threads = 2, tol = 1e-10, max_iters = 4, verbose = false, rng = rng)
 
-    @test res.totalcost ≈ 14.16198704459199
+    @test res.totalcost ≈ 14.133433380466027
     @test !res.converged
-    @test res.iterations == 10
+    @test res.iterations == 4
 
-    Random.seed!(2020)
-    X = rand(3, 100)
-    res = kmeans(Hamerly(), X, 3; n_threads = 2, tol = 1e-10, max_iters = 1000, verbose = false)
+    rng = deepcopy(rng_orig)
+    res = kmeans(Hamerly(), X, 3; n_threads = 2, tol = 1e-10, max_iters = 1000, verbose = false, rng = rng)
 
-    @test res.totalcost ≈ 14.161987044591992
+    @test res.totalcost ≈ 14.133433380466027
     @test res.converged
-    @test res.iterations == 11
+    @test res.iterations == 5
 end
 
 @testset "Hamerly Float32 support" begin
-    Random.seed!(2020)
+    rng = StableRNG(2020)
 
-    X = Float32.(rand(3, 100))
-    res = kmeans(Hamerly(), X, 3; n_threads = 1, tol = 1e-6, verbose = false)
-
-    @test typeof(res.totalcost) == Float32
-    @test res.totalcost ≈ 14.161985f0
-    @test res.converged
-    @test res.iterations == 11
-
-    Random.seed!(2020)
-
-    X = Float32.(rand(3, 100))
-    res = kmeans(Hamerly(), X, 3; n_threads = 2, tol = 1e-6, verbose = false)
+    X = Float32.(rand(rng, 3, 100))
+    rng_orig = deepcopy(rng)
+    res = kmeans(Hamerly(), X, 3; n_threads = 1, tol = 1e-6, verbose = false, rng = rng)
 
     @test typeof(res.totalcost) == Float32
-    @test res.totalcost ≈ 14.161985f0
+    @test res.totalcost ≈ 14.133433f0
     @test res.converged
-    @test res.iterations == 11
+    @test res.iterations == 5
+
+    rng = deepcopy(rng_orig)
+    res = kmeans(Hamerly(), X, 3; n_threads = 2, tol = 1e-6, verbose = false, rng = rng)
+
+    @test typeof(res.totalcost) == Float32
+    @test res.totalcost ≈ 14.133433f0
+    @test res.converged
+    @test res.iterations == 5
 end
 
 @testset "Hamerly weights support" begin
-    Random.seed!(2020)
-    X = rand(3, 100)
-    weights = rand(100)
+    rng = StableRNG(2020)
+    X = rand(rng, 3, 100)
+    weights = rand(rng, 100)
+    rng_orig = deepcopy(rng)
 
-    baseline = kmeans(Lloyd(), X, 10, weights; tol = 1e-10, verbose = false)
+    baseline = kmeans(Lloyd(), X, 10; weights =  weights, tol = 1e-10, verbose = false, rng = rng)
 
-    Random.seed!(2020)
-    X = rand(3, 100)
-    weights = rand(100)
-
-    res = kmeans(Hamerly(), X, 10, weights; tol = 1e-10, verbose = false)
+    rng = deepcopy(rng_orig)
+    res = kmeans(Hamerly(), X, 10; weights = weights, tol = 1e-10, verbose = false, rng = rng)
     @test res.totalcost ≈ baseline.totalcost
     @test res.converged
     @test res.iterations == baseline.iterations
 
-    Random.seed!(2020)
-    X = rand(3, 100)
-    weights = rand(100)
-
-    res = kmeans(Hamerly(), X, 10, weights; n_threads = 2, tol = 1e-10, verbose = false)
+    rng = deepcopy(rng_orig)
+    res = kmeans(Hamerly(), X, 10; weights = weights, n_threads = 2, tol = 1e-10, verbose = false, rng = rng)
     @test res.totalcost ≈ baseline.totalcost
     @test res.converged
     @test res.iterations == baseline.iterations

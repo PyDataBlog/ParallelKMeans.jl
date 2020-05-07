@@ -21,9 +21,10 @@ struct Elkan <: AbstractKMeansAlg end
 function kmeans!(alg::Elkan, containers, X, k, weights;
                 n_threads = Threads.nthreads(),
                 k_init = "k-means++", max_iters = 300,
-                tol = eltype(X)(1e-6), verbose = false, init = nothing)
+                tol = eltype(X)(1e-6), verbose = false,
+                init = nothing, rng = Random.GLOBAL_RNG)
     nrow, ncol = size(X)
-    centroids = init == nothing ? smart_init(X, k, n_threads, weights, init=k_init).centroids : deepcopy(init)
+    centroids = init == nothing ? smart_init(X, k, n_threads, weights, rng, init=k_init).centroids : deepcopy(init)
 
     update_containers(alg, containers, centroids, n_threads)
     @parallelize n_threads ncol chunk_initialize(alg, containers, centroids, X, weights)
