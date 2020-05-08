@@ -198,29 +198,11 @@ end
     @test !alg.auto
 end
 
-@testset "Yinyang metric support" begin
+@testset "Yinyang non-euclidean metric error" begin
     rng = StableRNG(2020)
     X = [1. 2. 4.;]
 
-    res = kmeans(Yinyang(), X, 2; tol = 1e-16, metric=Cityblock(), rng = rng)
-
-    @test res.assignments == [2, 2, 1]
-    @test res.centers == [4.0 1.5]
-    @test res.totalcost == 1.0
-    @test res.converged
-
-    rng = StableRNG(2020)
-    X = rand(3, 100)
-    rng_orig = deepcopy(rng)
-
-    baseline = kmeans(Lloyd(), X, 2, tol = 1e-16, metric=Cityblock(), rng = rng)
-
-    rng = deepcopy(rng_orig)
-    res = kmeans(Yinyang(), X, 2; tol = 1e-16, metric=Cityblock(), rng = rng)
-
-    @test res.totalcost ≈ baseline.totalcost
-    @test res.converged == baseline.converged
-    @test res.iterations == baseline.iterations
+    @test_throws MethodError res = kmeans(Yinyang(), X, 2; tol = 1e-16, metric=Cityblock(), rng = rng)
 end
 
 end # module

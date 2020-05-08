@@ -35,7 +35,7 @@ Coreset(; m = 100, alg = Lloyd()) = Coreset(m, alg)
 Coreset(m::Int) = Coreset(m, Lloyd())
 Coreset(alg::AbstractKMeansAlg) = Coreset(100, alg)
 
-function kmeans!(alg::Coreset, containers, X, k, weights, metric=Euclidean();
+function kmeans!(alg::Coreset, containers, X, k, weights, metric::Euclidean = Euclidean();
                 n_threads = Threads.nthreads(),
                 k_init = "k-means++", max_iters = 300,
                 tol = eltype(design_matrix)(1e-6), verbose = false,

@@ -47,12 +47,17 @@ Yinyang(; group_size = 7, auto = true) = Yinyang(auto, group_size)
 阴阳(group_size::Int) = Yinyang(true, group_size)
 阴阳(; group_size = 7, auto = true) = Yinyang(auto, group_size)
 
-function kmeans!(alg::Yinyang, containers, X, k, weights, metric=Euclidean();
+metric_checker(metric::Euclidean) = Euclidean()
+metric_checker(metric::Metric) = throw(error("Euclidean() is the only supported distance metric."))
+
+
+function kmeans!(alg::Yinyang, containers, X, k, weights, metric::Euclidean = Euclidean();
                 n_threads = Threads.nthreads(),
                 k_init = "k-means++", max_iters = 300,
                 tol = 1e-6, verbose = false,
                 init = nothing, rng = Random.GLOBAL_RNG)
 
+    #metric = metric_checker(metric)
     nrow, ncol = size(X)
 
     centroids = init == nothing ? smart_init(X, k, n_threads, weights, rng, init=k_init).centroids : deepcopy(init)
