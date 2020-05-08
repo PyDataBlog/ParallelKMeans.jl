@@ -69,7 +69,7 @@ end
 
     @test res.converged == baseline.converged
     @test res.iterations == baseline.iterations
-    @test floor(res.totalcost) == floor(baseline.totalcost)
+    @test (res.totalcost - baseline.totalcost) ≤ 1
 
 end
 

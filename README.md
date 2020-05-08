@@ -65,7 +65,8 @@ ________________________________________________________________________________
 - Lightening fast implementation of K-Means clustering algorithm even on a single thread in native Julia.
 - Support for multi-theading implementation of K-Means clustering algorithm.
 - Kmeans++ initialization for faster and better convergence.
-- Implementation of all the variants of the K-Means algorithm.
+- Implementation of all available variants of the K-Means algorithm.
+- Support for all distance metrics available at [Distances.jl](https://github.com/JuliaStats/Distances.jl)
 - Supported interface as an [MLJ](https://github.com/alan-turing-institute/MLJ.jl#available-models) model.
 
 _________________________________________________________________________________________________________

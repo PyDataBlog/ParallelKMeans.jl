@@ -210,7 +210,7 @@ ________________________________________________________________________________
 - 0.1.4 Bug fixes.
 - 0.1.5 Added `Yinyang` algorithm.
 - 0.1.6 Added support for weighted k-means; Added `Coreset` algorithm; improved support for different types of the design matrix.
-- 0.1.7 Added `Yinyang` and `Coreset` support in MLJ interface; added `weights` support in MLJ; added RNG seed support in MLJ interface and through all algorithms.
+- 0.1.7 Added `Yinyang` and `Coreset` support in MLJ interface; added `weights` support in MLJ; added RNG seed support in MLJ interface and through all algorithms; added metric support.
 
 ## Contributing
 
