@@ -69,7 +69,7 @@ end
 
     @test res.converged == baseline.converged
     @test res.iterations == baseline.iterations
-    @test round(res.totalcost) == round(baseline.totalcost)
+    @test floor(res.totalcost) == floor(baseline.totalcost)
 
 end
 
