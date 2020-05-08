@@ -40,6 +40,7 @@ struct KmeansResult{C<:AbstractMatrix{<:AbstractFloat},D<:Real,WC<:Real} <: Clus
     converged::Bool            # whether the procedure converged
 end
 
+
 """
     spliiter(n, k)
 
@@ -49,6 +50,7 @@ function splitter(n, k)
     xz = Int.(ceil.(range(0, n, length = k+1)))
     return [xz[i]+1:xz[i+1] for i in 1:k]
 end
+
 
 """
     @parallelize(n_threads, ncol, f)

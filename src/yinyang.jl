@@ -47,9 +47,6 @@ Yinyang(; group_size = 7, auto = true) = Yinyang(auto, group_size)
 阴阳(group_size::Int) = Yinyang(true, group_size)
 阴阳(; group_size = 7, auto = true) = Yinyang(auto, group_size)
 
-metric_checker(metric::Euclidean) = Euclidean()
-metric_checker(metric::Metric) = throw(error("Euclidean() is the only supported distance metric."))
-
 
 function kmeans!(alg::Yinyang, containers, X, k, weights, metric::Euclidean = Euclidean();
                 n_threads = Threads.nthreads(),
@@ -114,6 +111,7 @@ function kmeans!(alg::Yinyang, containers, X, k, weights, metric::Euclidean = Eu
     # especially during GPU related development
     return KmeansResult(centroids, containers.labels, T[], Int[], T[], totalcost, niters, converged)
 end
+
 
 function create_containers(alg::Yinyang, X, k, nrow, ncol, n_threads)
     T = eltype(X)

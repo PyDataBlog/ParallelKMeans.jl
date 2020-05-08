@@ -119,7 +119,7 @@ end
 
 
 """
-    chunk_initialize(alg::Hamerly, containers, centroids, design_matrix, r, idx)
+    chunk_initialize(alg::Hamerly, containers, centroids, X, weights, metric, r, idx)
 
 Initial calulation of all bounds and points labeling.
 """
@@ -139,7 +139,7 @@ end
 
 
 """
-    update_containers(::Hamerly, containers, centroids, n_threads)
+    update_containers(::Hamerly, containers, centroids, n_threads, metric)
 
 Calculates minimum distances from centers to each other.
 """
@@ -159,7 +159,7 @@ end
 
 
 """
-    chunk_update_centroids(::Hamerly, containers, centroids, X, r, idx)
+    chunk_update_centroids(alg::Hamerly, containers, centroids, X, weights, metric, r, idx)
 
 Detailed description of this function can be found in the original paper. It iterates through
 all points and tries to skip some calculation using known upper and lower bounds of distances
@@ -203,7 +203,7 @@ end
 
 
 """
-    point_all_centers!(containers, centroids, X, i)
+    point_all_centers!(containers, centroids, X, i, metric)
 
 Calculates new labels and upper and lower bounds for all points.
 """
@@ -236,7 +236,7 @@ end
 
 
 """
-    move_centers(::Hamerly, containers, centroids)
+    move_centers(::Hamerly, containers, centroids, metric)
 
 Calculates new positions of centers and distance they have moved. Results are stored
 in `centroids` and `p` respectively.

@@ -1,6 +1,3 @@
-
-
-
 """
     chunk_colwise!(target, x, y, i, weights, r, idx)
 
