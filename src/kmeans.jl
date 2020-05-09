@@ -205,4 +205,4 @@ end
 
 # Special center co-efficent dispatched on Euclidean or different metrics supported by Distances.jl
 centers_coefficient(::Euclidean) = 0.25
-centers_coefficient(::Distances.Metric) = 0.5
+centers_coefficient(::Metric) = 0.5

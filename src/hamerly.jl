@@ -149,8 +149,7 @@ function update_containers(::Hamerly, containers, centroids, n_threads, metric)
     s .= T(Inf)
     @inbounds for i in axes(centroids, 2)
         for j in i+1:size(centroids, 2)
-            d = distance(metric, centroids, centroids, i, j)
-            d = T(centers_coefficient(metric)) * d
+            d = T(centers_coefficient(metric)) * distance(metric, centroids, centroids, i, j)
             s[i] = s[i] > d ? d : s[i]
             s[j] = s[j] > d ? d : s[j]
         end

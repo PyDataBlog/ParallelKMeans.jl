@@ -11,7 +11,7 @@ ________________________________________________________________________________
 _________________________________________________________________________________________________________
 
 <div align="center">
-    <b>Classic & Contemporary Variants Of K-Means In Sonic Mode<b>
+    <b>Classic & Contemporary Variants Of K-Means In Sonic Mode</b>
 </div>
 
 <p align="center">

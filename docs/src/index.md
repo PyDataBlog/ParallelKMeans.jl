@@ -80,7 +80,6 @@ pkg> free ParallelKMeans
 - [X] Support of MLJ Random generation hyperparameter.
 - [ ] Support for other distance metrics supported by [Distances.jl](https://github.com/JuliaStats/Distances.jl#supported-distances).
 - [ ] Implementation of [Geometric methods to accelerate k-means algorithm](http://cs.baylor.edu/~hamerly/papers/sdm2016_rysavy_hamerly.pdf).
-- [ ] Support of MLJ Random generation hyperparameter.
 - [ ] Native support for tabular data inputs outside of MLJModels' interface.
 - [ ] Refactoring and finalization of API design.
 - [ ] GPU support.

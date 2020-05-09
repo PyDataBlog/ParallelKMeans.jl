@@ -4,7 +4,6 @@ using ParallelKMeans
 using ParallelKMeans: chunk_initialize, double_argmax
 using Test
 using StableRNGs
-using Random
 using Distances
 
 

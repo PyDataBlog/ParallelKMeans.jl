@@ -108,6 +108,7 @@ end
     res = kmeans(Elkan(), X, 2; tol = 1e-16, metric = Cityblock(), rng = rng)
     @test res.totalcost ≈ 60.893492629945044
     @test res.converged
+    @test res.iterations == 6
 end
 
 end # module
