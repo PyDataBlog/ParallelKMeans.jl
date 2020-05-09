@@ -112,7 +112,7 @@ Allocationless calculation of distance between vectors X1[:, i1] and X2[:, i2] d
 
 Allocationless calculation of square eucledean distance between vectors X1[:, i1] and X2[:, i2]
 """
-function distance(metric::Euclidean, X1, X2, i1, i2)
+@inline function distance(metric::Euclidean, X1, X2, i1, i2)
     # here goes my definition
     d = zero(eltype(X1))
     # TODO: break of the loop if d is larger than threshold (known minimum disatnce)
