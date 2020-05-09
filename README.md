@@ -49,7 +49,7 @@ pkg> add ParallelKMeans
 For the few (and selected) brave ones, one can simply grab the current experimental features by simply adding the experimental branch to your development environment after invoking the package manager with `]`:
 
 ```julia
-pkg> add ParallelKMeans#experimental
+pkg> add ParallelKMeans#master
 ```
 
 To revert to a stable version, you can simply run:
