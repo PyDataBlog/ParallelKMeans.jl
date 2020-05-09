@@ -4,6 +4,8 @@ using ParallelKMeans
 using ParallelKMeans: chunk_initialize, double_argmax
 using Test
 using StableRNGs
+using Distances
+
 
 @testset "initialize" begin
     X = permutedims([1.0 2; 2 1; 4 5; 6 6])
@@ -11,7 +13,7 @@ using StableRNGs
     nrow, ncol = size(X)
     containers = ParallelKMeans.create_containers(Hamerly(), X, 3, nrow, ncol, 1)
 
-    ParallelKMeans.chunk_initialize(Hamerly(), containers, centroids, X, nothing, 1:ncol, 1)
+    ParallelKMeans.chunk_initialize(Hamerly(), containers, centroids, X, nothing, Euclidean(), 1:ncol, 1)
     @test containers.lb == [18.0, 20.0, 5.0, 5.0]
     @test containers.ub == [0.0, 2.0, 0.0, 0.0]
 end
@@ -98,6 +100,32 @@ end
     res = kmeans(Hamerly(), X, 10; weights = weights, n_threads = 2, tol = 1e-10, verbose = false, rng = rng)
     @test res.totalcost ≈ baseline.totalcost
     @test res.converged
+    @test res.iterations == baseline.iterations
+end
+
+
+@testset "Hamerly metric support" begin
+    rng = StableRNG(2020)
+    X = [1. 2. 4.;]
+
+    res = kmeans(Hamerly(), X, 2; tol = 1e-16, metric=Cityblock(), rng = rng)
+
+    @test res.assignments == [2, 2, 1]
+    @test res.centers == [4.0 1.5]
+    @test res.totalcost == 1.0
+    @test res.converged
+
+    rng = StableRNG(2020)
+    X = rand(3, 100)
+    rng_orig = deepcopy(rng)
+
+    baseline = kmeans(Lloyd(), X, 2, tol = 1e-16, metric=Cityblock(), rng = rng)
+
+    rng = deepcopy(rng_orig)
+    res = kmeans(Hamerly(), X, 2; tol = 1e-16, metric=Cityblock(), rng = rng)
+
+    @test res.totalcost ≈ baseline.totalcost
+    @test res.converged == baseline.converged
     @test res.iterations == baseline.iterations
 end
 

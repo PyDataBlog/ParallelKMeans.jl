@@ -51,13 +51,15 @@ pkg> add ParallelKMeans
 The few (and selected) brave ones can simply grab the current experimental features by simply adding the experimental branch to your development environment after invoking the package manager with `]`:
 
 ```julia
-dev git@github.com:PyDataBlog/ParallelKMeans.jl.git
+pkg> add ParallelKMeans#experimental
 ```
 
-Don't forget to checkout the experimental branch and you are good to go with bleeding edge features and breakages!
+You are good to go with bleeding edge features and breakages!
 
-```bash
-git checkout experimental
+To revert to a stable version, you can simply run:
+
+```julia
+pkg> free ParallelKMeans
 ```
 
 ## Features
@@ -207,7 +209,7 @@ ________________________________________________________________________________
 - 0.1.4 Bug fixes.
 - 0.1.5 Added `Yinyang` algorithm.
 - 0.1.6 Added support for weighted k-means; Added `Coreset` algorithm; improved support for different types of the design matrix.
-- 0.1.7 Added `Yinyang` and `Coreset` support in MLJ interface; added `weights` support in MLJ; added RNG seed support in MLJ interface and through all algorithms.
+- 0.1.7 Added `Yinyang` and `Coreset` support in MLJ interface; added `weights` support in MLJ; added RNG seed support in MLJ interface and through all algorithms; added metric support.
 
 ## Contributing
 

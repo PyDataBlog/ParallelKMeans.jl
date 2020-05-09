@@ -3,6 +3,8 @@ module TestYinyang
 using ParallelKMeans
 using Test
 using StableRNGs
+using Distances
+
 
 @testset "basic kmeans Yinyang" begin
     X = [1. 2. 4.;]
@@ -194,6 +196,13 @@ end
 
     alg = Yinyang(false)
     @test !alg.auto
+end
+
+@testset "Yinyang non-euclidean metric error" begin
+    rng = StableRNG(2020)
+    X = [1. 2. 4.;]
+
+    @test_throws MethodError res = kmeans(Yinyang(), X, 2; tol = 1e-16, metric=Cityblock(), rng = rng)
 end
 
 end # module

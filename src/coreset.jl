@@ -35,18 +35,20 @@ Coreset(; m = 100, alg = Lloyd()) = Coreset(m, alg)
 Coreset(m::Int) = Coreset(m, Lloyd())
 Coreset(alg::AbstractKMeansAlg) = Coreset(100, alg)
 
-function kmeans!(alg::Coreset, containers, X, k, weights;
+function kmeans!(alg::Coreset, containers, X, k, weights, metric::Euclidean = Euclidean();
                 n_threads = Threads.nthreads(),
                 k_init = "k-means++", max_iters = 300,
                 tol = eltype(design_matrix)(1e-6), verbose = false,
                 init = nothing, rng = Random.GLOBAL_RNG)
+
     nrow, ncol = size(X)
+
     centroids = isnothing(init) ? smart_init(X, k, n_threads, weights, rng, init=k_init).centroids : deepcopy(init)
 
     T = eltype(X)
     # Steps 2-4 of the paper's algorithm 3
     # We distribute points over the centers and calculate weights of each cluster
-    @parallelize n_threads ncol chunk_fit(alg, containers, centroids, X, weights)
+    @parallelize n_threads ncol chunk_fit(alg, containers, centroids, X, weights, metric)
 
     # after this step, containers.centroids_new
     collect_containers(alg, containers, n_threads)
@@ -62,14 +64,15 @@ function kmeans!(alg::Coreset, containers, X, k, weights;
 
     # run usual kmeans for new set with new weights.
     res = kmeans(alg.alg, coreset, k, weights = coreset_weights, tol = tol, max_iters = max_iters,
-        verbose = verbose, init = centroids, n_threads = n_threads, rng = rng)
+        verbose = verbose, init = centroids, n_threads = n_threads, rng = rng, metric = metric)
 
-    @parallelize n_threads ncol chunk_apply(alg, containers, res.centers, X, weights)
+    @parallelize n_threads ncol chunk_apply(alg, containers, res.centers, X, weights, metric)
 
     totalcost = sum(containers.totalcost)
 
     return KmeansResult(res.centers, containers.labels, T[], Int[], T[], totalcost, res.iterations, res.converged)
 end
+
 
 function create_containers(alg::Coreset, X, k, nrow, ncol, n_threads)
     T = eltype(X)
@@ -109,7 +112,8 @@ function create_containers(alg::Coreset, X, k, nrow, ncol, n_threads)
     )
 end
 
-function chunk_fit(alg::Coreset, containers, centroids, X, weights, r, idx)
+
+function chunk_fit(alg::Coreset, containers, centroids, X, weights, metric, r, idx)
     centroids_cnt = containers.centroids_cnt[idx]
     centroids_dist = containers.centroids_dist[idx]
     labels = containers.labels
@@ -118,10 +122,10 @@ function chunk_fit(alg::Coreset, containers, centroids, X, weights, r, idx)
 
     J = zero(T)
     for i in r
-        dist = distance(X, centroids, i, 1)
+        dist = distance(metric, X, centroids, i, 1)
         label = 1
         for j in 2:size(centroids, 2)
-            new_dist = distance(X, centroids, i, j)
+            new_dist = distance(metric, X, centroids, i, j)
 
             # calculation of the closest center (steps 2-3 of the paper's algorithm 3)
             label = new_dist < dist ? j : label
@@ -143,6 +147,7 @@ function chunk_fit(alg::Coreset, containers, centroids, X, weights, r, idx)
 
     containers.J[idx] = J
 end
+
 
 function collect_containers(::Coreset, containers, n_threads)
     # Here we transform formula of the step 6
@@ -172,6 +177,7 @@ function collect_containers(::Coreset, containers, n_threads)
     end
 end
 
+
 function chunk_update_sensitivity(alg::Coreset, containers, r, idx)
     labels = containers.labels
     centroids_const = containers.centroids_const
@@ -182,7 +188,8 @@ function chunk_update_sensitivity(alg::Coreset, containers, r, idx)
     end
 end
 
-function chunk_apply(alg::Coreset, containers, centroids, X, weights, r, idx)
+
+function chunk_apply(alg::Coreset, containers, centroids, X, weights, metric, r, idx)
     centroids_cnt = containers.centroids_cnt[idx]
     centroids_dist = containers.centroids_dist[idx]
     labels = containers.labels
@@ -190,10 +197,10 @@ function chunk_apply(alg::Coreset, containers, centroids, X, weights, r, idx)
 
     J = zero(T)
     for i in r
-        dist = distance(X, centroids, i, 1)
+        dist = distance(metric, X, centroids, i, 1)
         label = 1
         for j in 2:size(centroids, 2)
-            new_dist = distance(X, centroids, i, j)
+            new_dist = distance(metric, X, centroids, i, j)
 
             # calculation of the closest center (steps 2-3 of the paper's algorithm 3)
             label = new_dist < dist ? j : label

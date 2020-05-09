@@ -3,6 +3,8 @@ module TestCoreset
 using ParallelKMeans
 using Test
 using StableRNGs
+using Distances
+
 
 @testset "basic coresets" begin
     rng = StableRNG(2020)
@@ -43,6 +45,14 @@ end
 
     alg = Coreset(Hamerly())
     @test alg.alg == Hamerly()
+end
+
+@testset "Coreset non-euclidean metric error" begin
+    rng = StableRNG(2020)
+    X = [1. 2. 4.;]
+
+    @test_throws MethodError res = kmeans(Coreset(), X, 2; tol = 1e-16, metric=Cityblock(), rng = rng)
+
 end
 
 end # module

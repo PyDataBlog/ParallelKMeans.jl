@@ -40,6 +40,7 @@ struct KmeansResult{C<:AbstractMatrix{<:AbstractFloat},D<:Real,WC<:Real} <: Clus
     converged::Bool            # whether the procedure converged
 end
 
+
 """
     spliiter(n, k)
 
@@ -49,6 +50,7 @@ function splitter(n, k)
     xz = Int.(ceil.(range(0, n, length = k+1)))
     return [xz[i]+1:xz[i+1] for i in 1:k]
 end
+
 
 """
     @parallelize(n_threads, ncol, f)
@@ -96,12 +98,22 @@ macro parallelize(n_threads, ncol, f)
     end
 end
 
+
+"""
+    distance(metric, X1, X2, i1, i2)
+
+Allocationless calculation of distance between vectors X1[:, i1] and X2[:, i2] defined by the supplied distance metric.
+"""
+@inline distance(metric, X1, X2, i1, i2) = evaluate(metric, uview(X1, :, i1), uview(X2, :, i2))
+
+
 """
     distance(X1, X2, i1, i2)
 
 Allocationless calculation of square eucledean distance between vectors X1[:, i1] and X2[:, i2]
 """
-function distance(X1, X2, i1, i2)
+@inline function distance(metric::Euclidean, X1, X2, i1, i2)
+    # here goes my definition
     d = zero(eltype(X1))
     # TODO: break of the loop if d is larger than threshold (known minimum disatnce)
     @inbounds @simd for i in axes(X1, 1)
@@ -111,6 +123,7 @@ function distance(X1, X2, i1, i2)
     return d
 end
 
+
 """
     sum_of_squares(x, labels, centre, k)
 
@@ -119,15 +132,15 @@ design matrix(x), centroids (centre), and the number of desired groups (k).
 
 A Float type representing the computed metric is returned.
 """
-function sum_of_squares(containers, x, labels, centre, weights, r, idx)
+function sum_of_squares(containers, x, labels, centre, weights, metric, r, idx)
     s = zero(eltype(x))
-
     @inbounds for i in r
-        s += isnothing(weights) ? distance(x, centre, i, labels[i]) : weights[i] * distance(x, centre, i, labels[i])
+        s += isnothing(weights) ? distance(metric, x, centre, i, labels[i]) : weights[i] * distance(metric, x, centre, i, labels[i])
     end
 
     containers.sum_of_squares[idx] = s
 end
+
 
 """
     kmeans([alg::AbstractKMeansAlg,] design_matrix, k; n_threads = nthreads(),
@@ -157,18 +170,21 @@ alternatively one can use `rand` to choose random points for init.
 
 A `KmeansResult` structure representing labels, centroids, and sum_squares is returned.
 """
-function kmeans(alg::AbstractKMeansAlg, design_matrix, k;
-                weights = nothing,
+function kmeans(alg::AbstractKMeansAlg, design_matrix, k; weights = nothing,
                 n_threads = Threads.nthreads(),
                 k_init = "k-means++", max_iters = 300,
                 tol = eltype(design_matrix)(1e-6), verbose = false,
-                init = nothing, rng = Random.GLOBAL_RNG)
+                init = nothing, rng = Random.GLOBAL_RNG, metric = Euclidean())
+
     nrow, ncol = size(design_matrix)
+
+    # Create containers based on the dimensions and specifications
     containers = create_containers(alg, design_matrix, k, nrow, ncol, n_threads)
 
-    return kmeans!(alg, containers, design_matrix, k, weights, n_threads = n_threads,
-                    k_init = k_init, max_iters = max_iters, tol = tol,
-                    verbose = verbose, init = init, rng = rng)
+    return kmeans!(alg, containers, design_matrix, k, weights, metric;
+                   n_threads = n_threads, k_init = k_init, max_iters = max_iters,
+                   tol = tol, verbose = verbose, init = init, rng = rng)
+
 end
 
 
@@ -186,3 +202,7 @@ function collect_containers(::AbstractKMeansAlg, containers, n_threads)
         @inbounds containers.centroids_new[end] .= containers.centroids_new[end] ./ containers.centroids_cnt[end]'
     end
 end
+
+# Special center co-efficent dispatched on Euclidean or different metrics supported by Distances.jl
+centers_coefficient(::Euclidean) = 0.25
+centers_coefficient(::Metric) = 0.5
