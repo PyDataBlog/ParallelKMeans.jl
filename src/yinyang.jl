@@ -54,7 +54,6 @@ function kmeans!(alg::Yinyang, containers, X, k, weights, metric::Euclidean = Eu
                 tol = 1e-6, verbose = false,
                 init = nothing, rng = Random.GLOBAL_RNG)
 
-    #metric = metric_checker(metric)
     nrow, ncol = size(X)
 
     centroids = init == nothing ? smart_init(X, k, n_threads, weights, rng, init=k_init).centroids : deepcopy(init)

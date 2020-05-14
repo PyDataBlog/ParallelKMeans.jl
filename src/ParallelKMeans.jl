@@ -15,9 +15,10 @@ include("hamerly.jl")
 include("elkan.jl")
 include("yinyang.jl")
 include("coreset.jl")
+include("mini_batch.jl")
 include("mlj_interface.jl")
 
 export kmeans
-export Lloyd, Hamerly, Elkan, Yinyang, 阴阳, Coreset
+export Lloyd, Hamerly, Elkan, Yinyang, 阴阳, Coreset, MiniBatch
 
 end # module
