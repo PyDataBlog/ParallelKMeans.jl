@@ -211,6 +211,8 @@ ________________________________________________________________________________
 - 0.1.5 Added `Yinyang` algorithm.
 - 0.1.6 Added support for weighted k-means; Added `Coreset` algorithm; improved support for different types of the design matrix.
 - 0.1.7 Added `Yinyang` and `Coreset` support in MLJ interface; added `weights` support in MLJ; added RNG seed support in MLJ interface and through all algorithms; added metric support.
+- 0.1.8 Minor cleanup
+- 0.1.9 Added travis support for Julia 1.5
 
 ## Contributing
 
