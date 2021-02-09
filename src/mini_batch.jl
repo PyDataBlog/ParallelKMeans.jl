@@ -12,7 +12,7 @@ MiniBatch() = MiniBatch(100)
 function kmeans!(alg::MiniBatch, X, k;
                  weights = nothing, metric = Euclidean(), n_threads = Threads.nthreads(),
                  k_init = "k-means++", init = nothing, max_iters = 300,
-                 tol = 0, verbose = false, rng = Random.GLOBAL_RNG)
+                 tol = 0, max_no_improvement = 10, verbose = false, rng = Random.GLOBAL_RNG)
 
     # Step 1. Select sample from X as specified by batch_size and weights
     nrow, ncol = size(X)  # n_features, m_examples
@@ -37,6 +37,8 @@ function kmeans!(alg::MiniBatch, X, k;
 
     # TODO: Main Steps. Batch update centroids until convergence
     while niters <= max_iters
+        counter = 0
+
         # b examples picked randomly from X (Stage 5 in paper)
         batch_rand_idx = isnothing(weights) ? rand(rng, 1:ncol, alg.b) : wsample(rng, 1:ncol, weights, alg.b)
         batch_sample = X[:, batch_rand_idx]
@@ -78,10 +80,16 @@ function kmeans!(alg::MiniBatch, X, k;
             println("Iteration $niters: Jclust = $J")
         end
 
-        # TODO: Check for convergence
-        if (niters > 1) & (abs(J - J_previous) < (tol * J))
-            converged = true
-            break
+        # TODO: Check for early stopping convergence
+        if (niters > 1) & abs(J - J_previous)
+            counter += 1
+
+            # Declare convergence if max_no_improvement criterion is met
+            if counter >= max_no_improvement
+                converged = true
+                break
+            end
+
         end
 
         J_previous = J
