@@ -213,6 +213,8 @@ ________________________________________________________________________________
 - 0.1.7 Added `Yinyang` and `Coreset` support in MLJ interface; added `weights` support in MLJ; added RNG seed support in MLJ interface and through all algorithms; added metric support.
 - 0.1.8 Minor cleanup
 - 0.1.9 Added travis support for Julia 1.5
+- 0.2.0 Updated MLJ Interface
+- 0.2.1 Mini-batch implementation
 
 ## Contributing
 
