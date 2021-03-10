@@ -13,30 +13,30 @@ end
 
 
 @testset "MiniBatch convergence" begin
-    X = [1 1 1 4 4 4 4 0 2 3 5 1; 2 4 0 2 0 4 5 1 2 2 5 -1.]
-
     rng = StableRNG(2020)
-    baseline = kmeans(Lloyd(), X, 2, rng = rng)
+    X = rand(rng, 3, 100)
 
-    rng = StableRNG(2020)
-    res = kmeans(MiniBatch(6), X, 2, rng = rng)
+    baseline = [kmeans(Lloyd(), X, 2).totalcost for i in 1:1_000] |> mean |> round
+    # TODO: Switch to kmeans after full implementation
+    res = [ParallelKMeans.kmeans!(MiniBatch(50), X, 2)[end] for i in 1:1_000] |> mean |> round
 
-    @test baseline.totalcost ≈ res.totalcost
+    @test baseline == res
 end
 
 
 @testset "MiniBatch metric support" begin
-    X = [1 1 1 4 4 4 4 0 2 3 5 1; 2 4 0 2 0 4 5 1 2 2 5 -1.]
     rng = StableRNG(2020)
-    rng_orig = deepcopy(rng)
+    X = rand(rng, 3, 100)
 
-    baseline = kmeans(Lloyd(), X, 2, tol = 1e-16, metric=Cityblock(), rng = rng)
+    baseline = [kmeans(Lloyd(), X, 2;
+                       tol=1e-6, metric=Cityblock(),
+                       max_iters=500).totalcost for i in 1:1000] |> mean |> floor
+    # TODO: Switch to kmeans after full implementation
+    res = [ParallelKMeans.kmeans!(MiniBatch(), X, 2;
+                                  metric=Cityblock(), tol=1e-6,
+                                  max_iters=500)[end] for i in 1:1000] |> mean |> floor
 
-    rng = deepcopy(rng_orig)
-    res = kmeans(MiniBatch(6), X, 2; tol = 1e-16, metric=Cityblock(), rng = rng)
-
-    @test res.totalcost ≈ baseline.totalcost
-    @test res.converged == baseline.converged
+    @test baseline == res
 end
 
 
