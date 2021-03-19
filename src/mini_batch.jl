@@ -80,7 +80,7 @@ function kmeans!(alg::MiniBatch, X, k;
         end
 
         # TODO: Check for early stopping convergence
-        if (niters > 1) & abs((J - J_previous) < (tol * J))
+        if (niters > 1) & (abs(J - J_previous) < (tol * J))
             counter += 1
 
             # Declare convergence if max_no_improvement criterion is met
@@ -103,6 +103,8 @@ function kmeans!(alg::MiniBatch, X, k;
                 J = sum_of_squares(X, final_labels, centroids)  # just a placeholder for now
                 break
             end
+        else
+            counter = 0
 
         end
 
