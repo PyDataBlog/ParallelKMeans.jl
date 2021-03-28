@@ -15,7 +15,7 @@ function kmeans!(alg::MiniBatch, X, k;
                  k_init = "k-means++", init = nothing, max_iters = 300,
                  tol = eltype(X)(1e-6), max_no_improvement = 10, verbose = false, rng = Random.GLOBAL_RNG)
 
-    # Get the type and dimensions of design matrix, X
+    # Get the type and dimensions of design matrix, X - (Step 1)
     T = eltype(X)
     nrow, ncol = size(X)
 
@@ -25,9 +25,8 @@ function kmeans!(alg::MiniBatch, X, k;
     # Initialize counter for the no. of data in each cluster - (Step 3) in paper
     N = zeros(T, k)
 
-    # Initialize nearest centers
-    labels = Vector{Int}(undef, alg.b)
-    final_labels = Vector{Int}(undef, ncol)
+    # Initialize nearest centers for both batch and whole dataset labels
+    final_labels = Vector{Int}(undef, ncol)  # dataset labels
 
     converged = false
     niters = 0
@@ -36,7 +35,7 @@ function kmeans!(alg::MiniBatch, X, k;
     J = zero(T)
 
     # TODO: Main Steps. Batch update centroids until convergence
-    while niters <= max_iters
+    while niters <= max_iters  # Step 4 in paper
 
         # b examples picked randomly from X (Step 5 in paper)
         batch_rand_idx = isnothing(weights) ? rand(rng, 1:ncol, alg.b) : wsample(rng, 1:ncol, weights, alg.b)
@@ -53,14 +52,14 @@ function kmeans!(alg::MiniBatch, X, k;
                 min_dist = dist < min_dist ? dist : min_dist
             end
 
-            labels[i] = label
+            final_labels[batch_rand_idx[i]] = label
         end
 
         # TODO: Batch gradient step
-        for j in axes(batch_sample, 2)  # iterate over examples (Step 9)
+        @inbounds for j in axes(batch_sample, 2)  # iterate over examples (Step 9)
 
-            # Get cached center/label for this x  => labels[j] (Step 10)
-            label = labels[j]
+            # Get cached center/label for this x  => labels[batch_rand_idx[j]] (Step 10)
+            label = final_labels[batch_rand_idx[j]]
             # Update per-center counts
             N[label] += isnothing(weights) ? 1 : weights[j]  # verify (Step 11)
 
@@ -71,8 +70,11 @@ function kmeans!(alg::MiniBatch, X, k;
             centroids[:, label] .= (1 - lr) .* centroids[:, label] .+ (lr .* batch_sample[:, j])
         end
 
-        # TODO: Calculate cost and check for convergence
-        J = sum_of_squares(batch_sample, labels, centroids)  # just a placeholder for now
+        # TODO: Reassign all labels based on new centres generated from the latest sample
+        final_labels = reassign_labels(X, metric, final_labels, centroids)
+
+        # TODO: Calculate cost on whole dataset after reassignment and check for convergence
+        J = sum_of_squares(X, final_labels, centroids)  # just a placeholder for now
 
         if verbose
             # Show progress and terminate if J stopped decreasing.
@@ -87,18 +89,8 @@ function kmeans!(alg::MiniBatch, X, k;
             if counter >= max_no_improvement
                 converged = true
                 # TODO: Compute label assignment for the complete dataset
-                @inbounds for i in axes(X, 2)
-                    min_dist = distance(metric, X, centroids, i, 1)
-                    label = 1
+                final_labels = reassign_labels(X, metric, final_labels, centroids)
 
-                    for j in 2:size(centroids, 2)
-                        dist = distance(metric, X, centroids, i, j)
-                        label = dist < min_dist ? j : label
-                        min_dist = dist < min_dist ? dist : min_dist
-                    end
-
-                    final_labels[i] = label
-                end
                 # TODO: Compute totalcost for the complete dataset
                 J = sum_of_squares(X, final_labels, centroids)  # just a placeholder for now
                 break
@@ -126,4 +118,20 @@ function sum_of_squares(x, labels, centre)
         end
     end
     return s
+end
+
+function reassign_labels(DMatrix, metric, labels, centres)
+    @inbounds for i in axes(DMatrix, 2)
+        min_dist = distance(metric, DMatrix, centres, i, 1)
+        label = 1
+
+        for j in 2:size(centres, 2)
+            dist = distance(metric, DMatrix, centres, i, j)
+            label = dist < min_dist ? j : label
+            min_dist = dist < min_dist ? dist : min_dist
+        end
+
+        labels[i] = label
+    end
+    return labels
 end
