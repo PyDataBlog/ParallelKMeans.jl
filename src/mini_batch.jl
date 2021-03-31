@@ -1,5 +1,6 @@
 """
     MiniBatch(b::Int)
+    `b` represents the size of the batch which should be sampled.
 
     Sculley et al. 2007 Mini batch k-means algorithm implementation.
 
@@ -16,8 +17,8 @@ end
 
 MiniBatch() = MiniBatch(100)
 
-function kmeans!(alg::MiniBatch, X, k;
-                 weights = nothing, metric = Euclidean(), n_threads = Threads.nthreads(),
+function kmeans!(alg::MiniBatch, containers, X, k,
+                 weights = nothing, metric = Euclidean(); n_threads = Threads.nthreads(),
                  k_init = "k-means++", init = nothing, max_iters = 300,
                  tol = eltype(X)(1e-6), max_no_improvement = 10, verbose = false, rng = Random.GLOBAL_RNG)
 
@@ -32,15 +33,14 @@ function kmeans!(alg::MiniBatch, X, k;
     N = zeros(T, k)
 
     # Initialize nearest centers for both batch and whole dataset labels
-    final_labels = Vector{Int}(undef, ncol)  # dataset labels
-
     converged = false
     niters = 0
     counter = 0
     J_previous = zero(T)
     J = zero(T)
+    totalcost = zero(T)
 
-    # TODO: Main Steps. Batch update centroids until convergence
+    # Main Steps. Batch update centroids until convergence
     while niters <= max_iters  # Step 4 in paper
 
         # b examples picked randomly from X (Step 5 in paper)
@@ -57,16 +57,17 @@ function kmeans!(alg::MiniBatch, X, k;
                 min_dist = dist < min_dist ? dist : min_dist
             end
 
-            final_labels[i] = label
+            containers.labels[i] = label
         end
 
-        # TODO: Batch gradient step
+        # Batch gradient step
         @inbounds for j in batch_rand_idx  # iterate over examples (Step 9)
 
             # Get cached center/label for this x  => (Step 10)
-            label = final_labels[j]
+            label = containers.labels[j]
+            
             # Update per-center counts
-            N[label] += isnothing(weights) ? 1 : weights[j]  # verify (Step 11)
+            N[label] += isnothing(weights) ? 1 : weights[j]  # (Step 11)
 
             # Get per-center learning rate (Step 12)
             lr = 1 / N[label]
@@ -75,43 +76,46 @@ function kmeans!(alg::MiniBatch, X, k;
             @views centroids[:, label] .= (1 - lr) .* centroids[:, label] .+ (lr .* X[:, j])
         end
 
-        # TODO: Reassign all labels based on new centres generated from the latest sample
-        final_labels = reassign_labels(X, metric, final_labels, centroids)
+        # Reassign all labels based on new centres generated from the latest sample
+        containers.labels .= reassign_labels(X, metric, containers.labels, centroids)
 
-        # TODO: Calculate cost on whole dataset after reassignment and check for convergence
-        J = sum_of_squares(X, final_labels, centroids)  # just a placeholder for now
+        # Calculate cost on whole dataset after reassignment and check for convergence
+        @parallelize 1 ncol sum_of_squares(containers, X, containers.labels, centroids, weights, metric)  
+        J = sum(containers.sum_of_squares)
 
         if verbose
             # Show progress and terminate if J stopped decreasing.
             println("Iteration $niters: Jclust = $J")
         end
 
-        # TODO: Check for early stopping convergence
+        # Check for early stopping convergence
         if (niters > 1) & (abs(J - J_previous) < (tol * J))
             counter += 1
 
             # Declare convergence if max_no_improvement criterion is met
             if counter >= max_no_improvement
                 converged = true
-                # TODO: Compute label assignment for the complete dataset
-                final_labels = reassign_labels(X, metric, final_labels, centroids)
+                # Compute label assignment for the complete dataset
+                containers.labels .= reassign_labels(X, metric, containers.labels, centroids)
 
-                # TODO: Compute totalcost for the complete dataset
-                J = sum_of_squares(X, final_labels, centroids)  # just a placeholder for now
+                # Compute totalcost for the complete dataset
+                @parallelize 1 ncol sum_of_squares(containers, X, containers.labels, centroids, weights, metric)
+                totalcost = sum(containers.sum_of_squares)
                 break
             end
         else
             counter = 0
         end
 
-        # TODO: Warn users if model doesn't converge at max iterations
+        # Warn users if model doesn't converge at max iterations
         if (niters > max_iters) & (!converged)
 
             println("Clustering model failed to converge. Labelling data with latest centroids.")
-            final_labels = reassign_labels(X, metric, final_labels, centroids)
+            containers.labels = reassign_labels(X, metric, containers.labels, centroids)
 
-            # TODO: Compute totalcost for unconverged model
-            J = sum_of_squares(X, final_labels, centroids)
+            # Compute totalcost for unconverged model
+            @parallelize 1 ncol sum_of_squares(containers, X, containers.labels, centroids, weights, metric)
+            totalcost = sum(containers.sum_of_squares)
             break
         end
 
@@ -119,21 +123,10 @@ function kmeans!(alg::MiniBatch, X, k;
         niters += 1
     end
 
-    return centroids, niters, converged, final_labels, J  # TODO: push learned artifacts to KmeansResult
-    #return KmeansResult(centroids, containers.labels, T[], Int[], T[], totalcost, niters, converged)
+    # Push learned artifacts to KmeansResult
+    return KmeansResult(centroids, containers.labels, T[], Int[], T[], totalcost, niters, converged)
 end
 
-# TODO: Only being used to test generic implementation. Get rid off after!
-function sum_of_squares(x, labels, centre)
-    s = 0.0
-
-    for i in axes(x, 2)
-        for j in axes(x, 1)
-            s += (x[j, i] - centre[j, labels[i]])^2
-        end
-    end
-    return s
-end
 
 function reassign_labels(DMatrix, metric, labels, centres)
     @inbounds for i in axes(DMatrix, 2)
@@ -159,25 +152,16 @@ Internal function for the creation of all necessary intermidiate structures.
 - `centroids_new` - container which holds new positions of centroids
 - `centroids_cnt` - container which holds number of points for each centroid
 - `labels` - vector which holds labels of corresponding points
+- `sum_of_squares` - vector which holds the sum of squares values for each thread
 """
 function create_containers(::MiniBatch, X, k, nrow, ncol, n_threads)
-    T = eltype(X)
-    lng = n_threads + 1
-    centroids_new = Vector{Matrix{T}}(undef, lng)
-    centroids_cnt = Vector{Vector{T}}(undef, lng)
-
-    for i in 1:lng
-        centroids_new[i] = Matrix{T}(undef, nrow, k)
-        centroids_cnt[i] = Vector{Int}(undef, k)
-    end
-
-    labels = Vector{Int}(undef, ncol)
-
-    J = Vector{T}(undef, n_threads)
-
-    # total_sum_calculation
-    sum_of_squares = Vector{T}(undef, n_threads)
+    # Initiate placeholders to avoid allocations
+    T = eltype(X) 
+    centroids_new = Matrix{T}(undef, nrow, k)  # main centroids
+    centroids_cnt = Vector{T}(undef, k)  # centroids counter
+    labels = Vector{Int}(undef, ncol)  # labels vector
+    sum_of_squares = Vector{T}(undef, 1)  # total_sum_calculation
 
     return (centroids_new = centroids_new, centroids_cnt = centroids_cnt,
-            labels = labels, J = J, sum_of_squares = sum_of_squares)
+            labels = labels, sum_of_squares = sum_of_squares)
 end
