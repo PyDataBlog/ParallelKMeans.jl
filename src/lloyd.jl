@@ -6,7 +6,7 @@ Basic algorithm for k-means calculation.
 struct Lloyd <: AbstractKMeansAlg end
 
 """
-    Kmeans!(alg::AbstractKMeansAlg, containers, design_matrix, k; n_threads = nthreads(), k_init="k-means++", max_iters=300, tol=1e-6, verbose=true)
+    kmeans!(alg::AbstractKMeansAlg, containers, design_matrix, k; n_threads = nthreads(), k_init="k-means++", max_iters=300, tol=1e-6, verbose=true)
 
 Mutable version of `kmeans` function. Definition of arguments and results can be
 found in `kmeans`.
