@@ -2,6 +2,12 @@
     MiniBatch(b::Int)
 
     Sculley et al. 2007 Mini batch k-means algorithm implementation.
+
+```julia
+X = rand(30, 100_000)  # 100_000 random points in 30 dimensions
+
+kmeans(MiniBatch(100), X, 3)  # 3 clusters, MiniBatch algorithm with 100 batch samples at each iteration
+```
 """
 struct MiniBatch <: AbstractKMeansAlg
     b::Int  # batch size
@@ -39,35 +45,34 @@ function kmeans!(alg::MiniBatch, X, k;
 
         # b examples picked randomly from X (Step 5 in paper)
         batch_rand_idx = isnothing(weights) ? rand(rng, 1:ncol, alg.b) : wsample(rng, 1:ncol, weights, alg.b)
-        batch_sample = X[:, batch_rand_idx]
 
         # Cache/label the batch samples nearest to the centers (Step 6 & 7)
-        @inbounds for i in axes(batch_sample, 2)
-            min_dist = distance(metric, batch_sample, centroids, i, 1)
+        @inbounds for i in batch_rand_idx
+            min_dist = distance(metric, X, centroids, i, 1)
             label = 1
 
             for j in 2:size(centroids, 2)
-                dist = distance(metric, batch_sample, centroids, i, j)
+                dist = distance(metric, X, centroids, i, j)
                 label = dist < min_dist ? j : label
                 min_dist = dist < min_dist ? dist : min_dist
             end
 
-            final_labels[batch_rand_idx[i]] = label
+            final_labels[i] = label
         end
 
         # TODO: Batch gradient step
-        @inbounds for j in axes(batch_sample, 2)  # iterate over examples (Step 9)
+        @inbounds for j in batch_rand_idx  # iterate over examples (Step 9)
 
-            # Get cached center/label for this x  => labels[batch_rand_idx[j]] (Step 10)
-            label = final_labels[batch_rand_idx[j]]
+            # Get cached center/label for this x  => (Step 10)
+            label = final_labels[j]
             # Update per-center counts
             N[label] += isnothing(weights) ? 1 : weights[j]  # verify (Step 11)
 
             # Get per-center learning rate (Step 12)
             lr = 1 / N[label]
 
-            # Take gradient step (Step 13) # TODO: Replace with an allocation-less loop.
-            centroids[:, label] .= (1 - lr) .* centroids[:, label] .+ (lr .* batch_sample[:, j])
+            # Take gradient step (Step 13) # TODO: Replace with faster loop?
+            @views centroids[:, label] .= (1 - lr) .* centroids[:, label] .+ (lr .* X[:, j])
         end
 
         # TODO: Reassign all labels based on new centres generated from the latest sample
@@ -97,7 +102,17 @@ function kmeans!(alg::MiniBatch, X, k;
             end
         else
             counter = 0
+        end
 
+        # TODO: Warn users if model doesn't converge at max iterations
+        if (niters > max_iters) & (!converged)
+
+            println("Clustering model failed to converge. Labelling data with latest centroids.")
+            final_labels = reassign_labels(X, metric, final_labels, centroids)
+
+            # TODO: Compute totalcost for unconverged model
+            J = sum_of_squares(X, final_labels, centroids)
+            break
         end
 
         J_previous = J
@@ -134,4 +149,35 @@ function reassign_labels(DMatrix, metric, labels, centres)
         labels[i] = label
     end
     return labels
+end
+
+"""
+    create_containers(::MiniBatch, k, nrow, ncol, n_threads)
+
+Internal function for the creation of all necessary intermidiate structures.
+
+- `centroids_new` - container which holds new positions of centroids
+- `centroids_cnt` - container which holds number of points for each centroid
+- `labels` - vector which holds labels of corresponding points
+"""
+function create_containers(::MiniBatch, X, k, nrow, ncol, n_threads)
+    T = eltype(X)
+    lng = n_threads + 1
+    centroids_new = Vector{Matrix{T}}(undef, lng)
+    centroids_cnt = Vector{Vector{T}}(undef, lng)
+
+    for i in 1:lng
+        centroids_new[i] = Matrix{T}(undef, nrow, k)
+        centroids_cnt[i] = Vector{Int}(undef, k)
+    end
+
+    labels = Vector{Int}(undef, ncol)
+
+    J = Vector{T}(undef, n_threads)
+
+    # total_sum_calculation
+    sum_of_squares = Vector{T}(undef, n_threads)
+
+    return (centroids_new = centroids_new, centroids_cnt = centroids_cnt,
+            labels = labels, J = J, sum_of_squares = sum_of_squares)
 end
