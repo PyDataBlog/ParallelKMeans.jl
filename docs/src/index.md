@@ -127,8 +127,8 @@ r.converged             # whether the procedure converged
 - [Elkan()](https://www.aaai.org/Papers/ICML/2003/ICML03-022.pdf) - Recommended for high dimensional data.
 - [Yinyang()](https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/ding15.pdf) - Recommended for large dimensions and/or large number of clusters.
 - [Coreset()](http://proceedings.mlr.press/v51/lucic16-supp.pdf) - Recommended for very fast clustering of very large datasets, when extreme accuracy is not important.
+- [MiniBatch()](https://www.eecs.tufts.edu/~dsculley/papers/fastkmeans.pdf) - Recommended for extremely large datasets.
 - [Geometric()](http://cs.baylor.edu/~hamerly/papers/sdm2016_rysavy_hamerly.pdf) - (Coming soon)
-- [MiniBatch()](https://www.eecs.tufts.edu/~dsculley/papers/fastkmeans.pdf) - (Coming soon)
 
 ### Practical Usage Examples
 
