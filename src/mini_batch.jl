@@ -39,12 +39,13 @@ function kmeans!(alg::MiniBatch, containers, X, k,
     J_previous = zero(T)
     J = zero(T)
     totalcost = zero(T)
-
+    batch_rand_idx = containers.batch_rand_idx
+    
     # Main Steps. Batch update centroids until convergence
     while niters <= max_iters  # Step 4 in paper
 
         # b examples picked randomly from X (Step 5 in paper)
-        batch_rand_idx = isnothing(weights) ? rand(rng, 1:ncol, alg.b) : wsample(rng, 1:ncol, weights, alg.b)
+        batch_rand_idx = isnothing(weights) ? rand!(rng, batch_rand_idx, 1:ncol) : wsample!(rng, 1:ncol, weights, batch_rand_idx)
 
         # Cache/label the batch samples nearest to the centers (Step 6 & 7)
         @inbounds for i in batch_rand_idx
@@ -58,22 +59,19 @@ function kmeans!(alg::MiniBatch, containers, X, k,
             end
 
             containers.labels[i] = label
-        end
 
-        # Batch gradient step
-        @inbounds for j in batch_rand_idx  # iterate over examples (Step 9)
-
-            # Get cached center/label for this x  => (Step 10)
-            label = containers.labels[j]
+            ##### Batch gradient step  #####
+            # iterate over examples (each column) ==> (Step 9)
+            # Get cached center/label for each example label = labels[i] => (Step 10) 
             
             # Update per-center counts
-            N[label] += isnothing(weights) ? 1 : weights[j]  # (Step 11)
+            N[label] += isnothing(weights) ? 1 : weights[i]  # (Step 11)
 
             # Get per-center learning rate (Step 12)
             lr = 1 / N[label]
 
             # Take gradient step (Step 13) # TODO: Replace with faster loop?
-            @views centroids[:, label] .= (1 - lr) .* centroids[:, label] .+ (lr .* X[:, j])
+            @views centroids[:, label] .= (1 - lr) .* centroids[:, label] .+ (lr .* X[:, i])
         end
 
         # Reassign all labels based on new centres generated from the latest sample
@@ -110,7 +108,9 @@ function kmeans!(alg::MiniBatch, containers, X, k,
         # Warn users if model doesn't converge at max iterations
         if (niters > max_iters) & (!converged)
 
-            println("Clustering model failed to converge. Labelling data with latest centroids.")
+            if verbose
+                println("Clustering model failed to converge. Labelling data with latest centroids.")
+            end
             containers.labels = reassign_labels(X, metric, containers.labels, centroids)
 
             # Compute totalcost for unconverged model
@@ -154,14 +154,13 @@ Internal function for the creation of all necessary intermidiate structures.
 - `labels` - vector which holds labels of corresponding points
 - `sum_of_squares` - vector which holds the sum of squares values for each thread
 """
-function create_containers(::MiniBatch, X, k, nrow, ncol, n_threads)
+function create_containers(alg::MiniBatch, X, k, nrow, ncol, n_threads)
     # Initiate placeholders to avoid allocations
     T = eltype(X) 
-    centroids_new = Matrix{T}(undef, nrow, k)  # main centroids
-    centroids_cnt = Vector{T}(undef, k)  # centroids counter
     labels = Vector{Int}(undef, ncol)  # labels vector
     sum_of_squares = Vector{T}(undef, 1)  # total_sum_calculation
+    batch_rand_idx = Vector{Int}(undef, alg.b)
 
-    return (centroids_new = centroids_new, centroids_cnt = centroids_cnt,
+    return (batch_rand_idx = batch_rand_idx,
             labels = labels, sum_of_squares = sum_of_squares)
 end
