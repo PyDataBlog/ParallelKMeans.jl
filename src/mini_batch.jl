@@ -34,7 +34,7 @@ function kmeans!(alg::MiniBatch, containers, X, k,
 
     # Initialize nearest centers for both batch and whole dataset labels
     converged = false
-    niters = 0
+    niters = 1
     counter = 0
     J_previous = zero(T)
     J = zero(T)
@@ -99,6 +99,12 @@ function kmeans!(alg::MiniBatch, containers, X, k,
                 # Compute totalcost for the complete dataset
                 @parallelize 1 ncol sum_of_squares(containers, X, containers.labels, centroids, weights, metric)
                 totalcost = sum(containers.sum_of_squares)
+                
+                # Print convergence message to user
+                if verbose
+                    println("Successfully terminated with convergence.")
+                end
+
                 break
             end
         else
@@ -106,12 +112,12 @@ function kmeans!(alg::MiniBatch, containers, X, k,
         end
 
         # Warn users if model doesn't converge at max iterations
-        if (niters > max_iters) & (!converged)
+        if (niters >= max_iters) & (!converged)
 
             if verbose
                 println("Clustering model failed to converge. Labelling data with latest centroids.")
             end
-            containers.labels = reassign_labels(X, metric, containers.labels, centroids)
+            containers.labels .= reassign_labels(X, metric, containers.labels, centroids)
 
             # Compute totalcost for unconverged model
             @parallelize 1 ncol sum_of_squares(containers, X, containers.labels, centroids, weights, metric)
