@@ -10,7 +10,8 @@ const MLJDICT = Dict(:Lloyd => Lloyd(),
                      :Elkan => Elkan(),
 					 :Yinyang => Yinyang(),
 					 :Coreset => Coreset(),
-					 :阴阳 => Coreset())
+					 :阴阳 => Coreset(), 
+                     :MiniBatch => MiniBatch())
 
 ####
 #### MODEL DEFINITION
@@ -123,12 +124,11 @@ function MMI.fit(m::KMeans, verbosity::Int, X)
               totalcost=result.totalcost, assignments=result.assignments, labels=cluster_labels)
 
 
-    """
-    # TODO: warn users about non convergence
+    # Warn users about non convergence
     if verbose & (!fitresult.converged)
         @warn "Specified model failed to converge."
     end
-    """
+
     return (fitresult, cache, report)
 end
 
