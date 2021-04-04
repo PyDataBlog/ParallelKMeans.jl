@@ -22,30 +22,34 @@ function kmeans!(alg::MiniBatch, containers, X, k,
                  k_init = "k-means++", init = nothing, max_iters = 300,
                  tol = eltype(X)(1e-6), max_no_improvement = 10, verbose = false, rng = Random.GLOBAL_RNG)
 
+    # Retrieve initialized artifacts from the container
+    centroids = containers.centroids_new
+    batch_rand_idx = containers.batch_rand_idx
+    labels = containers.labels
+
     # Get the type and dimensions of design matrix, X - (Step 1)
     T = eltype(X)
     nrow, ncol = size(X)
 
     # Initiate cluster centers - (Step 2) in paper
-    centroids = isnothing(init) ? smart_init(X, k, n_threads, weights, rng, init = k_init).centroids : deepcopy(init)
+    centroids .= isnothing(init) ? smart_init(X, k, n_threads, weights, rng, init = k_init).centroids : deepcopy(init)
 
     # Initialize counter for the no. of data in each cluster - (Step 3) in paper
     N = zeros(T, k)
 
-    # Initialize nearest centers for both batch and whole dataset labels
+    # Initialize various artifacts
     converged = false
     niters = 1
     counter = 0
     J_previous = zero(T)
     J = zero(T)
     totalcost = zero(T)
-    batch_rand_idx = containers.batch_rand_idx
-    
+
     # Main Steps. Batch update centroids until convergence
     while niters <= max_iters  # Step 4 in paper
 
         # b examples picked randomly from X (Step 5 in paper)
-        batch_rand_idx = isnothing(weights) ? rand!(rng, batch_rand_idx, 1:ncol) : wsample!(rng, 1:ncol, weights, batch_rand_idx)
+        isnothing(weights) ? rand!(rng, batch_rand_idx, 1:ncol) : wsample!(rng, 1:ncol, weights, batch_rand_idx)
 
         # Cache/label the batch samples nearest to the centers (Step 6 & 7)
         @inbounds for i in batch_rand_idx
@@ -58,12 +62,12 @@ function kmeans!(alg::MiniBatch, containers, X, k,
                 min_dist = dist < min_dist ? dist : min_dist
             end
 
-            containers.labels[i] = label
+            labels[i] = label
 
             ##### Batch gradient step  #####
             # iterate over examples (each column) ==> (Step 9)
-            # Get cached center/label for each example label = labels[i] => (Step 10) 
-            
+            # Get cached center/label for each example label = labels[i] => (Step 10)
+
             # Update per-center counts
             N[label] += isnothing(weights) ? 1 : weights[i]  # (Step 11)
 
@@ -75,10 +79,10 @@ function kmeans!(alg::MiniBatch, containers, X, k,
         end
 
         # Reassign all labels based on new centres generated from the latest sample
-        containers.labels .= reassign_labels(X, metric, containers.labels, centroids)
+        labels .= reassign_labels(X, metric, labels, centroids)
 
         # Calculate cost on whole dataset after reassignment and check for convergence
-        @parallelize 1 ncol sum_of_squares(containers, X, containers.labels, centroids, weights, metric)  
+        @parallelize 1 ncol sum_of_squares(containers, X, labels, centroids, weights, metric)
         J = sum(containers.sum_of_squares)
 
         if verbose
@@ -94,12 +98,12 @@ function kmeans!(alg::MiniBatch, containers, X, k,
             if counter >= max_no_improvement
                 converged = true
                 # Compute label assignment for the complete dataset
-                containers.labels .= reassign_labels(X, metric, containers.labels, centroids)
+                labels .= reassign_labels(X, metric, labels, centroids)
 
                 # Compute totalcost for the complete dataset
-                @parallelize 1 ncol sum_of_squares(containers, X, containers.labels, centroids, weights, metric)
+                @parallelize 1 ncol sum_of_squares(containers, X, labels, centroids, weights, metric)
                 totalcost = sum(containers.sum_of_squares)
-                
+
                 # Print convergence message to user
                 if verbose
                     println("Successfully terminated with convergence.")
@@ -117,11 +121,13 @@ function kmeans!(alg::MiniBatch, containers, X, k,
             if verbose
                 println("Clustering model failed to converge. Labelling data with latest centroids.")
             end
-            containers.labels .= reassign_labels(X, metric, containers.labels, centroids)
+
+            labels .= reassign_labels(X, metric, labels, centroids)
 
             # Compute totalcost for unconverged model
-            @parallelize 1 ncol sum_of_squares(containers, X, containers.labels, centroids, weights, metric)
+            @parallelize 1 ncol sum_of_squares(containers, X, labels, centroids, weights, metric)
             totalcost = sum(containers.sum_of_squares)
+
             break
         end
 
@@ -130,10 +136,14 @@ function kmeans!(alg::MiniBatch, containers, X, k,
     end
 
     # Push learned artifacts to KmeansResult
-    return KmeansResult(centroids, containers.labels, T[], Int[], T[], totalcost, niters, converged)
+    return KmeansResult(centroids, labels, T[], Int[], T[], totalcost, niters, converged)
 end
 
+"""
+    reassign_labels(DMatrix, metric, labels, centres)
 
+An internal function to relabel DMatrix based on centres and metric.
+"""
 function reassign_labels(DMatrix, metric, labels, centres)
     @inbounds for i in axes(DMatrix, 2)
         min_dist = distance(metric, DMatrix, centres, i, 1)
@@ -156,17 +166,18 @@ end
 Internal function for the creation of all necessary intermidiate structures.
 
 - `centroids_new` - container which holds new positions of centroids
-- `centroids_cnt` - container which holds number of points for each centroid
 - `labels` - vector which holds labels of corresponding points
 - `sum_of_squares` - vector which holds the sum of squares values for each thread
+- `batch_rand_idx` - vector which holds the selected batch indices
 """
 function create_containers(alg::MiniBatch, X, k, nrow, ncol, n_threads)
     # Initiate placeholders to avoid allocations
-    T = eltype(X) 
+    T = eltype(X)
     labels = Vector{Int}(undef, ncol)  # labels vector
     sum_of_squares = Vector{T}(undef, 1)  # total_sum_calculation
-    batch_rand_idx = Vector{Int}(undef, alg.b)
+    batch_rand_idx = Vector{Int}(undef, alg.b)  # selected batch indices
+    centroids_new = Matrix{T}(undef, nrow, k)  # centroids
 
-    return (batch_rand_idx = batch_rand_idx,
+    return (batch_rand_idx = batch_rand_idx, centroids_new = centroids_new,
             labels = labels, sum_of_squares = sum_of_squares)
 end

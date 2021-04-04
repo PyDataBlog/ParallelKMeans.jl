@@ -10,7 +10,7 @@ const MLJDICT = Dict(:Lloyd => Lloyd(),
                      :Elkan => Elkan(),
 					 :Yinyang => Yinyang(),
 					 :Coreset => Coreset(),
-					 :阴阳 => Coreset(), 
+					 :阴阳 => Coreset(),
                      :MiniBatch => MiniBatch())
 
 ####

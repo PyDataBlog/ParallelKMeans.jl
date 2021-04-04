@@ -200,15 +200,15 @@ end
     @test report.totalcost   ≈ 18.03007733451847
 
     params = fitted_params(model, results)
-    @test all(params.cluster_centers .≈ [0.39739206832613827 0.4818900563319951; 
-                                        0.7695625526281311 0.30986081763964723; 
+    @test all(params.cluster_centers .≈ [0.39739206832613827 0.4818900563319951;
+                                        0.7695625526281311 0.30986081763964723;
                                         0.6175496080776439 0.3911138270823586])
 
     # Use trained model to cluster new data X_test
     preds = transform(model, results, X_test)
     @test preds[:x1][1] ≈ 0.48848842207123555
     @test preds[:x2][1] ≈ 0.08355805256372761
-    
+
     # Make predictions on new data X_test with fitted params
     yhat = predict(model, results, X_test)
     @test yhat == report.assignments[1:2]

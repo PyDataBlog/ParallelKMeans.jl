@@ -78,11 +78,11 @@ pkg> free ParallelKMeans
 - [X] Implementation of [Coresets](http://proceedings.mlr.press/v51/lucic16-supp.pdf).
 - [X] Support for weighted K-means.
 - [X] Support of MLJ Random generation hyperparameter.
+- [X] Implementation of [Mini-batch KMeans variant](https://www.eecs.tufts.edu/~dsculley/papers/fastkmeans.pdf)
 - [ ] Support for other distance metrics supported by [Distances.jl](https://github.com/JuliaStats/Distances.jl#supported-distances).
 - [ ] Implementation of [Geometric methods to accelerate k-means algorithm](http://cs.baylor.edu/~hamerly/papers/sdm2016_rysavy_hamerly.pdf).
 - [ ] Native support for tabular data inputs outside of MLJModels' interface.
-- [ ] Refactoring and finalization of API design.
-- [ ] GPU support.
+- [ ] GPU support?
 - [ ] Distributed calculations support.
 - [ ] Optimization of code base.
 - [ ] Improved Documentation
@@ -127,7 +127,7 @@ r.converged             # whether the procedure converged
 - [Elkan()](https://www.aaai.org/Papers/ICML/2003/ICML03-022.pdf) - Recommended for high dimensional data.
 - [Yinyang()](https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/ding15.pdf) - Recommended for large dimensions and/or large number of clusters.
 - [Coreset()](http://proceedings.mlr.press/v51/lucic16-supp.pdf) - Recommended for very fast clustering of very large datasets, when extreme accuracy is not important.
-- [MiniBatch()](https://www.eecs.tufts.edu/~dsculley/papers/fastkmeans.pdf) - Recommended for extremely large datasets.
+- [MiniBatch()](https://www.eecs.tufts.edu/~dsculley/papers/fastkmeans.pdf) - Recommended for extremely large datasets, when extreme accuracy is not important.
 - [Geometric()](http://cs.baylor.edu/~hamerly/papers/sdm2016_rysavy_hamerly.pdf) - (Coming soon)
 
 ### Practical Usage Examples
@@ -175,9 +175,9 @@ Currently, this package is benchmarked against similar implementations in both P
 
 *Note*: All benchmark tests are made on the same computer to help eliminate any bias.
 
-|PC Name                      |CPU                       |Ram               |
-|:---------------------------:|:------------------------:|:----------------:|
-|iMac (Retina 5K 27-inch 2019)|3 GHz 6-Core Intel Core i5|8 GB 2667 MHz DDR4|
+|PC Name                      |CPU                       |Ram                |
+|:---------------------------:|:------------------------:|:-----------------:|
+|iMac (Retina 5K 27-inch 2019)|3 GHz 6-Core Intel Core i5|24 GB 2667 MHz DDR4|
 
 Currently, the benchmark speed tests are based on the search for optimal number of clusters using the [Elbow Method](https://en.wikipedia.org/wiki/Elbow_method_(clustering)) since this is a practical use case for most practioners employing the K-Means algorithm.
 
