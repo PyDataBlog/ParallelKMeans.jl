@@ -10,12 +10,16 @@ const MLJDICT = Dict(:Lloyd => Lloyd(),
                      :Elkan => Elkan(),
 					 :Yinyang => Yinyang(),
 					 :Coreset => Coreset(),
-					 :阴阳 => Coreset())
+					 :阴阳 => Coreset(),
+                     :MiniBatch => MiniBatch())
 
 ####
 #### MODEL DEFINITION
 ####
-
+"""
+    ParallelKMeans model constructed by the user.
+    See also the [package documentation](https://pydatablog.github.io/ParallelKMeans.jl/stable).
+"""
 mutable struct KMeans <: MMI.Unsupervised
     algo::Union{Symbol, AbstractKMeansAlg}
     k_init::String
@@ -80,7 +84,7 @@ end
 #### FIT FUNCTION
 ####
 """
-    Fit the specified ParaKMeans model constructed by the user.
+    Fit the specified ParallelKMeans model constructed by the user.
 
     See also the [package documentation](https://pydatablog.github.io/ParallelKMeans.jl/stable).
 """
@@ -120,12 +124,11 @@ function MMI.fit(m::KMeans, verbosity::Int, X)
               totalcost=result.totalcost, assignments=result.assignments, labels=cluster_labels)
 
 
-    """
-    # TODO: warn users about non convergence
+    # Warn users about non convergence
     if verbose & (!fitresult.converged)
         @warn "Specified model failed to converge."
     end
-    """
+
     return (fitresult, cache, report)
 end
 
@@ -187,21 +190,21 @@ end
 #### METADATA
 ####
 
-# TODO 4: metadata for the package and for each of the model interfaces
+# Metadata for the package and for each of the model interfaces
 MMI.metadata_pkg.(KMeans,
-    name = "ParallelKMeans",
-    uuid = "42b8e9d4-006b-409a-8472-7f34b3fb58af",
-    url  = "https://github.com/PyDataBlog/ParallelKMeans.jl",
-    julia = true,
-    license = "MIT",
-    is_wrapper = false)
+    name        = "ParallelKMeans",
+    uuid        = "42b8e9d4-006b-409a-8472-7f34b3fb58af",
+    url         = "https://github.com/PyDataBlog/ParallelKMeans.jl",
+    julia       = true,
+    license     = "MIT",
+    is_wrapper  = false)
 
 
 # Metadata for ParaKMeans model interface
 MMI.metadata_model(KMeans,
     input   = MMI.Table(MMI.Continuous),
     output  = MMI.Table(MMI.Continuous),
-    target =  AbstractArray{<:MMI.Multiclass},
+    target  =  AbstractArray{<:MMI.Multiclass},
     weights = false,
     descr   = ParallelKMeans_Desc,
 	path	= "ParallelKMeans.KMeans")

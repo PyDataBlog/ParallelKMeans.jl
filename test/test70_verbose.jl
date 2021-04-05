@@ -48,8 +48,16 @@ end
 
     # Capture output and compare
     r = @capture_out kmeans(Coreset(), X, 3; n_threads=1, max_iters=1, verbose=true, rng = rng)
-    # This test is broken on 1.5 dev, see https://github.com/rfourquet/StableRNGs.jl/issues/3
-    # @test startswith(r, "Iteration 1: Jclust = 32.8028409136")
+    @test startswith(r, "Iteration 1: Jclust = 32.8028409136")
+end
+
+@testset "MiniBatch: Testing verbosity of implementation" begin
+    rng = StableRNG(2020)
+    X = rand(rng, 3, 100)
+
+    # Capture output and compare
+    r = @capture_out kmeans(MiniBatch(10), X, 2; n_threads=1, max_iters=1, verbose=true, rng = rng)
+    @test startswith(r, "Iteration 1: Jclust = 18.298067523612104")
 end
 
 end # module

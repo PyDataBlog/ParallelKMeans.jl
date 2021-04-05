@@ -2,8 +2,8 @@
 
 [![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://PyDataBlog.github.io/ParallelKMeans.jl/stable)
 [![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://PyDataBlog.github.io/ParallelKMeans.jl/dev)
-[![Build Status](https://www.travis-ci.org/PyDataBlog/ParallelKMeans.jl.svg?branch=master)](https://www.travis-ci.org/PyDataBlog/ParallelKMeans.jl)
-[![Coverage Status](https://coveralls.io/repos/github/PyDataBlog/ParallelKMeans.jl/badge.svg?branch=master)](https://coveralls.io/github/PyDataBlog/ParallelKMeans.jl?branch=master)
+[![Build Status](https://github.com/PyDataBlog/ParallelKMeans.jl/actions/workflows/CI.yml/badge.svg)](https://github.com/PyDataBlog/ParallelKMeans.jl/actions/workflows/CI.yml/badge.svg)
+[![codecov](https://codecov.io/gh/PyDataBlog/ParallelKMeans.jl/branch/master/graph/badge.svg?token=799USS6BPH)](https://codecov.io/gh/PyDataBlog/ParallelKMeans.jl)
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FPyDataBlog%2FParallelKMeans.jl.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2FPyDataBlog%2FParallelKMeans.jl?ref=badge_shield)
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/PyDataBlog/ParallelKMeans.jl/master)
 _________________________________________________________________________________________________________
@@ -22,10 +22,13 @@ ________________________________________________________________________________
 
 ## Table Of Content
 
-1. [Documentation](#Documentation)
-2. [Installation](#Installation)
-3. [Features](#Features)
-4. [License](#License)
+- [ParallelKMeans](#parallelkmeans)
+  - [Table Of Content](#table-of-content)
+    - [Documentation](#documentation)
+    - [Installation](#installation)
+    - [Features](#features)
+    - [Benchmarks](#benchmarks)
+    - [License](#license)
 
 _________________________________________________________________________________________________________
 

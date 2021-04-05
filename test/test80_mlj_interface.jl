@@ -187,6 +187,33 @@ end
     @test yhat[1] == 2
 end
 
+@testset "Test MiniBatch model fitting" begin
+    rng = StableRNG(2020)
+    X = table(rand(rng, 3, 100)')
+    X_test =  table([0.25  0.17  0.29; 0.52  0.71  0.75])  # similar to first 2 examples
+
+    model = KMeans(algo = MiniBatch(50), k=2, rng=rng, max_iters=2_000)
+    results, cache, report = fit(model, 0, X)
+
+    @test cache              == nothing
+    @test results.converged
+    @test report.totalcost   ≈ 18.03007733451847
+
+    params = fitted_params(model, results)
+    @test all(params.cluster_centers .≈ [0.39739206832613827 0.4818900563319951;
+                                        0.7695625526281311 0.30986081763964723;
+                                        0.6175496080776439 0.3911138270823586])
+
+    # Use trained model to cluster new data X_test
+    preds = transform(model, results, X_test)
+    @test preds[:x1][1] ≈ 0.48848842207123555
+    @test preds[:x2][1] ≈ 0.08355805256372761
+
+    # Make predictions on new data X_test with fitted params
+    yhat = predict(model, results, X_test)
+    @test yhat == report.assignments[1:2]
+end
+
 @testset "Testing weights support" begin
     rng = StableRNG(2020)
     X = table(rand(rng, 3, 100)')
@@ -210,7 +237,7 @@ end
     @test_logs (:warn, "Failed to converge. Using last assignments to make transformations.") transform(model, results, X_test)
 end
 
-"""
+
 @testset "Testing non convergence warning during model fitting" begin
     Random.seed!(2020)
     X = table([1 2; 1 4; 1 0; 10 2; 10 4; 10 0])
@@ -219,5 +246,5 @@ end
     model = KMeans(k=2, max_iters=1)
     @test_logs (:warn, "Specified model failed to converge.") fit(model, 1, X);
 end
-"""
+
 end # module
