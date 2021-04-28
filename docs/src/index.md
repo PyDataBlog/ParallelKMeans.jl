@@ -79,14 +79,15 @@ pkg> free ParallelKMeans
 - [X] Support for weighted K-means.
 - [X] Support of MLJ Random generation hyperparameter.
 - [X] Implementation of [Mini-batch KMeans variant](https://www.eecs.tufts.edu/~dsculley/papers/fastkmeans.pdf)
+- [X] Add contribution guidelines.
 - [ ] Support for other distance metrics supported by [Distances.jl](https://github.com/JuliaStats/Distances.jl#supported-distances).
 - [ ] Implementation of [Geometric methods to accelerate k-means algorithm](http://cs.baylor.edu/~hamerly/papers/sdm2016_rysavy_hamerly.pdf).
 - [ ] Native support for tabular data inputs outside of MLJModels' interface.
-- [ ] GPU support?
 - [ ] Distributed calculations support.
-- [ ] Optimization of code base.
-- [ ] Improved Documentation
+- [ ] Further optimization of code base.
+- [ ] Improved Documentation with more tutorials.
 - [ ] More benchmark tests.
+- [ ] GPU support?
 
 ## How To Use
 
@@ -126,7 +127,7 @@ r.converged             # whether the procedure converged
 - [Hamerly()](https://www.researchgate.net/publication/220906984_Making_k-means_Even_Faster) - Hamerly is good for moderate number of clusters (< 50?) and moderate dimensions (<100?).
 - [Elkan()](https://www.aaai.org/Papers/ICML/2003/ICML03-022.pdf) - Recommended for high dimensional data.
 - [Yinyang()](https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/ding15.pdf) - Recommended for large dimensions and/or large number of clusters.
-- [Coreset()](http://proceedings.mlr.press/v51/lucic16-supp.pdf) - Recommended for very fast clustering of very large datasets, when extreme accuracy is not important.
+- [Coreset()](http://proceedings.mlr.press/v51/lucic16-supp.pdf) - Recommended for very fast clustering of very large datasets, when extreme accuracy is not important. *Experimental Implementation*
 - [MiniBatch()](https://www.eecs.tufts.edu/~dsculley/papers/fastkmeans.pdf) - Recommended for extremely large datasets, when extreme accuracy is not important.
 - [Geometric()](http://cs.baylor.edu/~hamerly/papers/sdm2016_rysavy_hamerly.pdf) - (Coming soon)
 
@@ -215,14 +216,13 @@ ________________________________________________________________________________
 - 0.1.9 Added travis support for Julia 1.5
 - 0.2.0 Updated MLJ Interface
 - 0.2.1 Mini-batch implementation
+- 0.2.2 Updated MLJInterface
+- 1.0.0 Stable public release
 
 ## Contributing
 
 Ultimately, we see this package as potentially the one-stop-shop for everything related to KMeans algorithm and its speed up variants. We are open to new implementations and ideas from anyone interested in this project.
-
-Detailed contribution guidelines will be added in upcoming releases.
-
-<!--- TODO: Contribution Guidelines --->
+This project adopts the [ColPrac community guidelines](https://github.com/SciML/ColPrac).
 
 ```@index
 ```
