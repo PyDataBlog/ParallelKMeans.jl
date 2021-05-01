@@ -127,8 +127,8 @@ r.converged             # whether the procedure converged
 - [Hamerly()](https://www.researchgate.net/publication/220906984_Making_k-means_Even_Faster) - Hamerly is good for moderate number of clusters (< 50?) and moderate dimensions (<100?).
 - [Elkan()](https://www.aaai.org/Papers/ICML/2003/ICML03-022.pdf) - Recommended for high dimensional data.
 - [Yinyang()](https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/ding15.pdf) - Recommended for large dimensions and/or large number of clusters.
-- [Coreset()](http://proceedings.mlr.press/v51/lucic16-supp.pdf) - Recommended for very fast clustering of very large datasets, when extreme accuracy is not important. *Experimental Implementation*
-- [MiniBatch()](https://www.eecs.tufts.edu/~dsculley/papers/fastkmeans.pdf) - Recommended for extremely large datasets, when extreme accuracy is not important.
+- [Coreset()](http://proceedings.mlr.press/v51/lucic16-supp.pdf) - Recommended for very fast clustering of very large datasets, when extreme accuracy is not important.
+- [MiniBatch()](https://www.eecs.tufts.edu/~dsculley/papers/fastkmeans.pdf) - Recommended for extremely large datasets, when extreme accuracy is not important. *Experimental Implementation*
 - [Geometric()](http://cs.baylor.edu/~hamerly/papers/sdm2016_rysavy_hamerly.pdf) - (Coming soon)
 
 ### Practical Usage Examples
@@ -188,17 +188,17 @@ Currently, the benchmark speed tests are based on the search for optimal number 
 
 _________________________________________________________________________________________________________
 
-|1 million sample (secs)|100k sample (secs)|10k sample (secs)|1k sample (secs)|package                |language   |
-|:---------------------:|:----------------:|:---------------:|:--------------:|:---------------------:|:---------:|
-|       538.53100       |     33.15700     |     0.74238     |    0.01710     |     Clustering.jl     |   Julia   |
-|       220.35700       |     20.93600     |     0.82430     |    0.02639     |        mlpack         |C++ Wrapper|
-|       20.55400        |     2.91300      |     0.17559     |    0.00609     |         Lloyd         |   Julia   |
-|       11.51800        |     0.96637      |     0.09990     |    0.00635     |        Hamerly        |   Julia   |
-|       14.01900        |     1.13100      |     0.07912     |    0.00646     |         Elkan         |   Julia   |
-|        9.97000        |     1.14600      |     0.10834     |    0.00704     |       Yinyang         |   Julia   |
-|      1,430.00000      |    146.00000     |     5.77000     |    0.34400     |    Sklearn KMeans     |  Python   |
-|       30.10000        |     3.75000      |     0.61300     |    0.20100     |Sklearn MiniBatchKMeans|  Python   |
-|       218.20000       |     15.51000     |     0.73370     |    0.01947     |         Knor          |     R     |
+|1 million sample (secs)|100k sample (secs)|10k sample (secs)|1k sample (secs)|package                 |language   |process   |
+|-----------------------|------------------|-----------------|----------------|------------------------|-----------|----------|
+|282.7                  |15.27             |0.7324           |0.01682         |Knor                    |R          |full scan |
+|854                    |87                |6.11             |0.000719        |Sklearn KMeans          |Python     |full scan |
+|11.2                   |1.41              |0.000317         |0.000141        |Sklearn MiniBatch Kmeans|Python     |stochastic|
+|254.481                |18.517            |0.000794956      |0.000031211     |Mlpack                  |C++ Wrapper|full scan |
+|653.178                |45.468            |0.000824115      |0.000017301     |Clustering.jl           |Julia      |full scan |
+|19.955                 |2.758             |0.000166957      |0.000009206     |ParallelKMeans Lloyd    |Julia      |full scan |
+|11.234                 |1.654             |0.000109074      |0.000012819     |ParallelKMeans Hamerly  |Julia      |full scan |
+|19.394                 |1.436             |0.000109262      |0.000013726     |ParallelKMeans Elkan    |Julia      |full scan |
+|14.080                 |0.000972914       |0.000095325      |0.000009802     |ParallelKMeans YingYang |Julia      |stochastic|
 
 _________________________________________________________________________________________________________
 
@@ -215,7 +215,7 @@ ________________________________________________________________________________
 - 0.1.8 Minor cleanup
 - 0.1.9 Added travis support for Julia 1.5
 - 0.2.0 Updated MLJ Interface
-- 0.2.1 Mini-batch implementation
+- 0.2.1 Initial Mini-batch implementation
 - 0.2.2 Updated MLJInterface
 - 1.0.0 Stable public release
 
