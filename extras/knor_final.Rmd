@@ -13,16 +13,6 @@ output:
 library(knor)
 ```
 
-
-```{r}
-## Installed packages
-installed.packages()[names(sessionInfo()$otherPkgs), "Version"]
-``` 
-```{r}
-## R Version
-version[['version.string']]
-```
-
 ```{r}
 X_1m = as.matrix(read.csv("data_1m.csv", header = FALSE))
 ```
@@ -53,7 +43,7 @@ test_multicore_speed <- function(x){
     
   for (i in rng) {
     m <- knor::Kmeans(data = x, centers = i,
-                      iter.max = 100000, nthread = -1, 
+                      iter.max = 1000, nthread = -1, 
                       init = "kmeanspp",
                       tolerance = 1e-06,
                       dist.type = "eucl")
