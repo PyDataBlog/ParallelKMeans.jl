@@ -6,9 +6,6 @@ using Chain
 
 data = CSV.read("extras/updated_benchmarks_may_1.csv", DataFrame)
 
-#data2 = stack(data, 1:4)
-#unstack(data2, :variable, :package, :value) |> CSV.write("extras/wide.csv")
-
 long_data = @chain data begin
     rename(_, [replace(x, " " => "_") for x in names(_)])
     rename(_, [replace(x, "_sample_(secs)" => "") for x in names(_)])

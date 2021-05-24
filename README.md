@@ -8,7 +8,7 @@
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FPyDataBlog%2FParallelKMeans.jl.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2FPyDataBlog%2FParallelKMeans.jl?ref=badge_shield)
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/PyDataBlog/ParallelKMeans.jl/master)
 _________________________________________________________________________________________________________
-**Authors:** [Bernard Brenyah](https://www.linkedin.com/in/bbrenyah/) & [Andrey Oskin](https://www.linkedin.com/in/andrej-oskin-b2b03959/)
+**Authors:** [Bernard Brenyah](https://www.linkedin.com/in/bbrenyah/) AND [Andrey Oskin](https://www.linkedin.com/in/andrej-oskin-b2b03959/)
 _________________________________________________________________________________________________________
 
 <div align="center">
