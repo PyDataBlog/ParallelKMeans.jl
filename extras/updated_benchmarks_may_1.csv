@@ -1,0 +1,10 @@
+1 million sample (secs),100k sample (secs),10k sample (secs),1k sample (secs),package,language,process
+282.7,15.27,0.7324,0.01682,Knor,R,full scan
+854,87,6.11,0.000719,Sklearn KMeans,Python,full scan
+11.2,1.41,0.000317,0.000141,Sklearn MiniBatch Kmeans,Python,stochastic
+254.481,18.517,0.000794956,0.000031211,Mlpack ,C++ Wrapper,full scan
+653.178,45.468,0.000824115,0.000017301,Clustering.jl,Julia,full scan
+19.955,2.758,0.000166957,0.000009206,ParallelKMeans Lloyd,Julia,full scan
+11.234,1.654,0.000109074,0.000012819,ParallelKMeans Hamerly,Julia,full scan
+19.394,1.436,0.000109262,0.000013726,ParallelKMeans Elkan,Julia,full scan
+14.08,0.000972914,0.000095325,0.000009802,ParallelKMeans YingYang,Julia,full scan
