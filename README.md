@@ -2,8 +2,7 @@
 
 [![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://PyDataBlog.github.io/ParallelKMeans.jl/stable)
 [![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://PyDataBlog.github.io/ParallelKMeans.jl/dev)
-[![ColPrac: Contributor's Guide on Collaborative Practices for Community Packages](https://img.shields.io/badge/ColPrac-Contributor's%20Guide-blueviolet)](https://github.com/SciML/ColPrac)
-[![Build Status](https://github.com/PyDataBlog/ParallelKMeans.jl/actions/workflows/CI.yml/badge.svg)](https://github.com/PyDataBlog/ParallelKMeans.jl/actions)
+[![Build Status](https://github.com/PyDataBlog/ParallelKMeans.jl/actions/workflows/CI.yml/badge.svg)](https://github.com/PyDataBlog/ParallelKMeans.jl/actions/workflows/CI.yml/badge.svg)
 [![codecov](https://codecov.io/gh/PyDataBlog/ParallelKMeans.jl/branch/master/graph/badge.svg?token=799USS6BPH)](https://codecov.io/gh/PyDataBlog/ParallelKMeans.jl)
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FPyDataBlog%2FParallelKMeans.jl.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2FPyDataBlog%2FParallelKMeans.jl?ref=badge_shield)
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/PyDataBlog/ParallelKMeans.jl/master)
