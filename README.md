@@ -66,7 +66,7 @@ ________________________________________________________________________________
 
 ### Features
 
-- Lightening fast implementation of K-Means clustering algorithm even on a single thread in native Julia.
+- Lightning fast implementation of K-Means clustering algorithm even on a single thread in native Julia.
 - Support for multi-theading implementation of K-Means clustering algorithm.
 - Kmeans++ initialization for faster and better convergence.
 - Implementation of all available variants of the K-Means algorithm.
