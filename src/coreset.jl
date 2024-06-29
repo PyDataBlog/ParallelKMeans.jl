@@ -70,7 +70,9 @@ function kmeans!(alg::Coreset, containers, X, k, weights, metric::Euclidean = Eu
 
     totalcost = sum(containers.totalcost)
 
-    return KmeansResult(res.centers, containers.labels, T[], Int[], T[], totalcost, res.iterations, res.converged)
+    counts = collect(values(sort(countmap(containers.labels))))
+
+    return KmeansResult(res.centers, containers.labels, T[], counts, T[], totalcost, res.iterations, res.converged)
 end
 
 

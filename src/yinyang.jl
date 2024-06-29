@@ -106,10 +106,12 @@ function kmeans!(alg::Yinyang, containers, X, k, weights, metric::Euclidean = Eu
         println("Successfully terminated with convergence.")
     end
 
+    counts = collect(values(sort(countmap(containers.labels))))
+
     # TODO empty placeholder vectors should be calculated
     # TODO Float64 type definitions is too restrictive, should be relaxed
     # especially during GPU related development
-    return KmeansResult(centroids, containers.labels, T[], Int[], T[], totalcost, niters, converged)
+    return KmeansResult(centroids, containers.labels, T[], counts, T[], totalcost, niters, converged)
 end
 
 

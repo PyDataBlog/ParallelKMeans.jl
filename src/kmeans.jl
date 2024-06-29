@@ -146,6 +146,8 @@ end
     kmeans([alg::AbstractKMeansAlg,] design_matrix, k; n_threads = nthreads(),
     k_init="k-means++", max_iters=300, tol=1e-6, verbose=true, rng = Random.GLOBAL_RNG)
 
+### IMPLEMENTATION NOTES
+
 This main function employs the K-means algorithm to cluster all examples
 in the training data (design_matrix) into k groups using either the
 `k-means++` or random initialisation technique for selecting the initial
@@ -155,7 +157,8 @@ At the end of the number of iterations specified (max_iters), convergence is
 achieved if difference between the current and last cost objective is
 less than the tolerance level (tol). An error is thrown if convergence fails.
 
-Arguments:
+### ARGUMENTS
+
 - `alg` defines one of the algorithms used to calculate `k-means`. This
 argument can be omitted, by default Lloyd algorithm is used.
 - `n_threads` defines number of threads used for calculations, by default it is equal
@@ -169,6 +172,18 @@ alternatively one can use `rand` to choose random points for init.
 - `verbose` is verbosity level. Details of operations can be either printed or not by setting verbose accordingly.
 
 A `KmeansResult` structure representing labels, centroids, and sum_squares is returned.
+
+### EXAMPLE 
+
+```julia
+X = rand(2, 100)                # 100 points in 2d
+km = kmeans(X, 5)               # 5 clusters with the default (LLoyd) algo
+km_yy = kmeans(Yinyang(), X, 5) # 5 clusters with the Yinyang algo
+
+kma = km.assignments            # X[:,i] is a member of cluster kma[i]
+kmc = km.centers                # cluster i has center kmc[:,i]
+kmn = km.counts                 # clister i has kmn[i] points
+```
 """
 function kmeans(alg::AbstractKMeansAlg, design_matrix, k;
                 weights = nothing,
