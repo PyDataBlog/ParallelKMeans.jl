@@ -182,7 +182,7 @@ km_yy = kmeans(Yinyang(), X, 5) # 5 clusters with the Yinyang algo
 
 kma = km.assignments            # X[:,i] is a member of cluster kma[i]
 kmc = km.centers                # cluster i has center kmc[:,i]
-kmn = km.counts                 # clister i has kmn[i] points
+kmn = km.counts                 # cluster i has kmn[i] points
 ```
 """
 function kmeans(alg::AbstractKMeansAlg, design_matrix, k;
