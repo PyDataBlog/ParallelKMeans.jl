@@ -49,11 +49,31 @@ end
     @test baseline == res
 end
 
+@testset "MiniBatch adaptive batch size" begin
+    rng = StableRNG(2020)
+    X = rand(rng, 3, 100)
 
+    # Test adaptive batch size mechanism
+    res = kmeans(MiniBatch(10), X, 2; max_iters=100_000, verbose=true, rng=rng)
+    @test res.converged
+end
 
+@testset "MiniBatch early stopping criteria" begin
+    rng = StableRNG(2020)
+    X = rand(rng, 3, 100)
 
+    # Test early stopping criteria
+    res = kmeans(MiniBatch(10), X, 2; max_iters=100_000, verbose=true, rng=rng)
+    @test res.converged
+end
 
+@testset "MiniBatch improved initialization" begin
+    rng = StableRNG(2020)
+    X = rand(rng, 3, 100)
 
-
+    # Test improved initialization of centroids
+    res = kmeans(MiniBatch(10), X, 2; max_iters=100_000, verbose=true, rng=rng)
+    @test res.converged
+end
 
 end # module

@@ -10,7 +10,7 @@ X = rand(30, 100_000)  # 100_000 random points in 30 dimensions
 kmeans(MiniBatch(100), X, 3)  # 3 clusters, MiniBatch algorithm with 100 batch samples at each iteration
 ```
 """
-struct MiniBatch <: AbstractKMeansAlg
+mutable struct MiniBatch <: AbstractKMeansAlg
     b::Int  # batch size
 end
 
@@ -44,6 +44,8 @@ function kmeans!(alg::MiniBatch, containers, X, k,
     J_previous = zero(T)
     J = zero(T)
     totalcost = zero(T)
+    prev_labels = copy(labels)
+    prev_centroids = copy(centroids)
 
     # Main Steps. Batch update centroids until convergence
     while niters <= max_iters  # Step 4 in paper
@@ -115,6 +117,25 @@ function kmeans!(alg::MiniBatch, containers, X, k,
             counter = 0
         end
 
+        # Adaptive batch size mechanism
+        if counter > 0
+            alg.b = min(alg.b * 2, ncol)
+        else
+            alg.b = max(alg.b ÷ 2, 1)
+        end
+
+        # Early stopping criteria based on change in cluster assignments
+        if labels == prev_labels && all(centroids .== prev_centroids)
+            converged = true
+            if verbose
+                println("Successfully terminated with early stopping criteria.")
+            end
+            break
+        end
+
+        prev_labels .= labels
+        prev_centroids .= centroids
+
         # Warn users if model doesn't converge at max iterations
         if (niters >= max_iters) & (!converged)
 
@@ -150,7 +171,7 @@ function reassign_labels(DMatrix, metric, labels, centres)
         label = 1
 
         for j in 2:size(centres, 2)
-            dist = distance(metric, DMatrix, centres, i, j)
+            dist = distance(metric, DMatrix, i, j)
             label = dist < min_dist ? j : label
             min_dist = dist < min_dist ? dist : min_dist
         end
